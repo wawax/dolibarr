@@ -1712,7 +1712,7 @@ class eCommerceSynchro
                                 }
                                 else
                                 {
-                                	print 'No change in price for '.$dBProduct->ref."\n";
+                                	//print 'No change in price for '.$dBProduct->ref."\n";
                                 }
                             }
 
@@ -2224,7 +2224,16 @@ class eCommerceSynchro
                                             $array_options = array();
                                             if (! empty($conf->global->ECOMMERCENG_STORE_LONG_SKU) && ! empty($item['remote_long_sku']))	// For Magento when it return long sku
                                             {
-                                            	$array_options = array('options_long_sku'=>$item['remote_long_sku']);	// To store into the extrafields 'long_sku' the value of sku+option suffix
+                                                 $opt = array('options_long_sku'=>$item['remote_long_sku']);	// To store into the extrafields 'long_sku' the value of sku+option suffix
+                                                 if (!empty($conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)) {
+                                                    if (!empty($item['fz_rollingpart_serial'])) {
+                                                       $opt['options_fz_rollingpart_serial'] = $item['fz_rollingpart_serial'];
+                                                    }
+                                                    if (!empty($item['fz_shoesize'])) {
+                                                       $opt['options_fz_shoesize'] = $item['fz_shoesize'];
+                                                    }
+                          					          }
+                                                 $array_options = $opt;	// To store into the extrafields 'long_sku' the value of sku+option suffix
                                             }
 
                                             $result = $dBCommande->addline($item['description'], $item['price'], $item['qty'], $item['tva_tx'], 0, 0,
@@ -3461,4 +3470,3 @@ class eCommerceSynchro
 
 
 }
-

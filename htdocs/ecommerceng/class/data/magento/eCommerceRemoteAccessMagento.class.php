@@ -761,11 +761,9 @@ class eCommerceRemoteAccessMagento
                     $configurableItems = array();
 					foreach ($commande['items'] as $item)
 					{
-						// var_dump($item); // show item as it is from magento
-
 						// If item is configurable, localMemCache it, to use its price and tax rate instead of the one of its child
 						if ($item['product_type'] == 'configurable') {
-							$configurableItems[$item['item_id']] = array(
+                     $conf_item = array(
 							'item_id' => $item['item_id'],
 							'id_remote_product' => $item['product_id'],
 							'description' => $item['name'],
@@ -778,6 +776,15 @@ class eCommerceRemoteAccessMagento
 							'remote_simple_sku' => $item['simple_sku'],
 							'remote_long_sku' => $item['sku']
 							);
+                     if (isset($conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)
+                        && $conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)
+							{
+								$this->getCustomInfos($item, $conf_item);
+							} else {
+                        $conf_item['fz_rollingpart_serial'] = '';
+                        $conf_item['fz_shoesize'] = '';
+                     }
+                     $configurableItems[$item['item_id']] = $conf_item;
 						} else {
 							// If item has a parent item id defined in $configurableItems, it's a child simple item so we get it's price and tax values instead of 0
 							if (! array_key_exists($item['parent_item_id'], $configurableItems)) {
@@ -792,7 +799,9 @@ class eCommerceRemoteAccessMagento
 								'qty' => $item['qty_ordered'],
 								'tva_tx' => $item['tax_percent'],
 								'remote_simple_sku' => $item['simple_sku'],
-								'remote_long_sku' => $item['sku']
+								'remote_long_sku' => $item['sku'],
+                        'fz_rollingpart_serial' => $item['fz_rollingpart_serial'],
+                        'fz_shoesize' => $item['fz_shoesize']
 								);
 							} else {
 								$items[] = array(
@@ -806,12 +815,13 @@ class eCommerceRemoteAccessMagento
 								'qty' => $item['qty_ordered'],
 								'tva_tx' => $configurableItems[$item['parent_item_id']]['tva_tx'],
 								'remote_simple_sku' => $configurableItems[$item['parent_item_id']]['remote_simple_sku'],
-								'remote_long_sku' => $configurableItems[$item['parent_item_id']]['remote_long_sku']
+								'remote_long_sku' => $configurableItems[$item['parent_item_id']]['remote_long_sku'],
+                        'fz_rollingpart_serial' => $configurableItems[$item['parent_item_id']]['fz_rollingpart_serial'],
+                        'fz_shoesize' => $configurableItems[$item['parent_item_id']]['fz_shoesize']
 								);
 							}
 						}
 					}
-
 					// set order's address
 					$commandeSocpeople = $commande['billing_address'];
 					$socpeopleCommande = array(
@@ -940,6 +950,30 @@ class eCommerceRemoteAccessMagento
 
         dol_syslog("convertRemoteObjectIntoDolibarrCommande end (found ".count($commandes)." array of orders filled with complete data from eCommerce)");
         return $commandes;
+    }
+
+
+    public function getCustomInfos($item, &$conf_item)
+    {
+      //if ($item['product_type'] == 'configurable') {
+         $opt = unserialize($item["product_options"]);
+	      foreach ($opt as $val) {
+            if (!is_array($val)) {
+               continue;
+            }
+            foreach ($val as $id => $o) {
+               if (!isset($o['label'])) {
+                  continue;
+               }
+               if (preg_match('/Pointure|Taille|Size/i', $o['label'])) {
+                  $conf_item['fz_shoesize'] = $o['value'];
+   	         }
+   	         if (preg_match('/Série|Serial/i', $o['label'])) {
+   	            $conf_item['fz_rollingpart_serial'] = $o['value'];
+   	         }
+            }
+	      }
+	   //}
     }
 
     /**
@@ -1784,4 +1818,3 @@ class eCommerceRemoteAccessMagento
     }
 
 }
-
