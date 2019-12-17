@@ -79,12 +79,18 @@ class eCommerceRemoteAccess
     /**
      * Get societe to update from instantiated class in the constructor
      *
-     * @param   datetime    $fromDate Updates from this date
-     * @param   datetime    $toDate   Updates to this date
-     * @return  array                 Array of remote societe
+     * @param   integer    $fromDate Updates from this date
+     * @param   integer    $toDate   Updates to this date
+     * @return  array                Array of remote societe
      */
     public function getSocieteToUpdate($fromDate, $toDate)
 	{
+	    if ($fromDate && $toDate && $fromDate > $toDate)
+	    {
+	        $this->error='getProductToUpdate Error: The fromDate '.dol_print_date($fromDate, 'dayhourrfc').' is higher than the toDate '.dol_print_date($toDate, 'dayhourrfc');
+	        $this->errors[]=$this->error;
+	        return array();
+	    }
 	    $result = $this->class->getSocieteToUpdate($fromDate, $toDate);
 		$this->error=$this->class->error;
 		$this->errors=$this->class->errors;
@@ -100,6 +106,12 @@ class eCommerceRemoteAccess
      */
     public function getProductToUpdate($fromDate, $toDate)
 	{
+        if ($fromDate && $toDate && $fromDate > $toDate)
+        {
+            $this->error='getProductToUpdate Error: The fromDate '.dol_print_date($fromDate, 'dayhourrfc').' is higher than the toDate '.dol_print_date($toDate, 'dayhourrfc');
+            $this->errors[]=$this->error;
+            return array();
+        }
 	    $result=$this->class->getProductToUpdate($fromDate, $toDate);
 		$this->error=$this->class->error;
 		$this->errors=$this->class->errors;
@@ -115,7 +127,13 @@ class eCommerceRemoteAccess
      */
     public function getCommandeToUpdate($fromDate, $toDate)
 	{
-		$result=$this->class->getCommandeToUpdate($fromDate, $toDate);
+	    if ($fromDate && $toDate && $fromDate > $toDate)
+	    {
+	        $this->error='getProductToUpdate Error: The fromDate '.dol_print_date($fromDate, 'dayhourrfc').' is higher than the toDate '.dol_print_date($toDate, 'dayhourrfc');
+	        $this->errors[]=$this->error;
+	        return array();
+	    }
+	    $result=$this->class->getCommandeToUpdate($fromDate, $toDate);
 		$this->error=$this->class->error;
 		$this->errors=$this->class->errors;
 		return $result;
@@ -130,6 +148,12 @@ class eCommerceRemoteAccess
      */
     public function getFactureToUpdate($fromDate, $toDate)
 	{
+	    if ($fromDate && $toDate && $fromDate > $toDate)
+	    {
+	        $this->error='getProductToUpdate Error: The fromDate '.dol_print_date($fromDate, 'dayhourrfc').' is higher than the toDate '.dol_print_date($toDate, 'dayhourrfc');
+	        $this->errors[]=$this->error;
+	        return array();
+	    }
 	    $result=$this->class->getFactureToUpdate($fromDate, $toDate);
 		$this->error=$this->class->error;
 		$this->errors=$this->class->errors;

@@ -58,6 +58,7 @@ $siteDb = new eCommerceSite($db);
 
 $sites = $siteDb->listSites();
 $siteTypes = $siteDb->getSiteTypes();
+$siteTypesLabel = $siteDb->getSiteTypesLabel();
 $site_form_select_site = 0;
 
 // Set $site_form_select_site on first site.
@@ -80,6 +81,7 @@ elseif ($site_form_select_site)
 
 if ($siteId != null)
     $siteDb->fetch($siteId);
+
 
 /*
  * Actions
@@ -141,6 +143,8 @@ if ($_POST['site_form_detail_action'] == 'save')
 
         if ($result > 0)
         {
+            $sites = $siteDb->listSites();  // Reload after create
+
             $eCommerceMenu = new eCommerceMenu($db, $siteDb);
             $eCommerceMenu->updateMenu();
             $db->commit();
@@ -172,6 +176,8 @@ elseif ($_POST['site_form_detail_action'] == 'delete')
     }
     else
     {
+        $sites = $siteDb->listSites();  // Reload after delete
+
         $eCommerceMenu = new eCommerceMenu($db, $siteDb);
         $eCommerceMenu->updateMenu();
         $success[] = $langs->trans('ECommerceDeleteOk');
@@ -185,16 +191,6 @@ elseif ($_POST['site_form_detail_action'] == 'delete')
 /*
  *  View
  */
-
-if (! extension_loaded('soap'))
-{
-    llxHeader();
-
-    print info_admin($langs->trans("ErrorModuleSoapRequired"));
-
-    llxFooter();
-    exit;
-}
 
 $classCategorie = new Categorie($db);
 $productCategories = $classCategorie->get_full_arbo('product');

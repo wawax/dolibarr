@@ -103,16 +103,18 @@ class InterfaceForceProject
      *      $object->fk_element
      *      $object->elementtype
      *
-     *      @param	string	$action     Event code (COMPANY_CREATE, PROPAL_VALIDATE, ...)
-     *      @param  Object	$object     Object action is done on
-     *      @param  User	$user       Object user
-     *      @param  Langs	$langs      Object langs
-     *      @param  Conf	$conf       Object conf
-     *      @return int         		<0 if KO, 0 if no action are done, >0 if OK
+     *      @param	string	  $action     Event code (COMPANY_CREATE, PROPAL_VALIDATE, ...)
+     *      @param  Object	  $object     Object action is done on
+     *      @param  User	  $user       Object user
+     *      @param  Translate $langs      Object langs
+     *      @param  Conf	  $conf       Object conf
+     *      @return int         		  <0 if KO, 0 if no action are done, >0 if OK
      */
     function runTrigger($action,$object,$user,$langs,$conf)
     {
 		$ok=0;
+
+		if (empty($conf->forceproject->enabled)) return 0;     // If module is not enabled, we do nothing
 
 		// Actions
         if ($action == 'PROPAL_VALIDATE' && (! empty($conf->global->FORCEPROJECT_ON_PROPOSAL) || ! empty($conf->global->FORCEPROJECT_ON_ALL)))
@@ -141,8 +143,9 @@ class InterfaceForceProject
 	            	$newref=preg_replace('/\{PROJECTREF\-[1-9]\}/',$projectref,$newref);  // When mask is  ...{PROJECTREF-9}... for example
 	            	$newref=preg_replace('/%%+/',$projectref,$newref);
 
-	            	// If we want the counter to start to 1 for each project
-	            	if (! empty($conf->global->FORCEPROJECT_COUNTER_FOREACH_PROJECT))
+	            	// If this is the first time we set the counter and we want the counter to start to 1 for each project
+	            	// The tag {PROJECTREF\-[1-9]\} must be present into ref numbering mask to have this working.
+	            	if (preg_match('/\(PROV/', $object->ref) && ! empty($conf->global->FORCEPROJECT_COUNTER_FOREACH_PROJECT))
 	            	{
 	            		// Clean current ref of propal, so we can make again later a getNextNumRef and get same value for invoice number
 	            		$sql="UPDATE ".MAIN_DB_PREFIX."propal SET ref = '(TMP".$this->db->escape($newref).")' WHERE rowid=".$object->id;
@@ -160,6 +163,44 @@ class InterfaceForceProject
 				       	//var_dump($newref); exit;
 	            	}
 	            	dol_syslog("We validate proposal ".$object->id." oldref=".$object->ref." newref=".$newref." projectid=".$projectid." projectref=".$projectref);
+                    $error = 0;
+
+
+	            	// Rename directory if dir was a temporary ref
+	            	if (preg_match('/^[\(]?PROV/i', $object->ref))
+	            	{
+	            	    // Now we rename also files into index
+	            	    $sql = 'UPDATE '.MAIN_DB_PREFIX."ecm_files set filename = CONCAT('".$this->db->escape($object->newref)."', SUBSTR(filename, ".(strlen($object->ref)+1).")), filepath = 'propale/".$this->db->escape($object->newref)."'";
+	            	    $sql.= " WHERE filename LIKE '".$this->db->escape($object->ref)."%' AND filepath = 'propale/".$object->db->escape($object->ref)."' and entity = ".$conf->entity;
+	            	    $resql = $this->db->query($sql);
+	            	    if (! $resql) { $error++; $this->error = $this->db->lasterror(); }
+
+	            	    // We rename directory ($this->ref = old ref, $num = new ref) in order not to lose the attachments
+	            	    $oldref = dol_sanitizeFileName($object->ref);
+	            	    $newref = dol_sanitizeFileName($newref);
+	            	    $dirsource = $conf->propal->multidir_output[$object->entity?$object->entity:$conf->entity].'/'.$oldref;
+	            	    $dirdest = $conf->propal->multidir_output[$object->entity?$object->entity:$conf->entity].'/'.$newref;
+
+	            	    if (! $error && file_exists($dirsource))
+	            	    {
+	            	        dol_syslog(get_class($this)."::validate rename dir ".$dirsource." into ".$dirdest);
+	            	        if (@rename($dirsource, $dirdest))
+	            	        {
+	            	            dol_syslog("Rename ok");
+	            	            // Rename docs starting with $oldref with $newref
+	            	            $listoffiles=dol_dir_list($dirdest, 'files', 1, '^'.preg_quote($oldref, '/'));
+	            	            foreach($listoffiles as $fileentry)
+	            	            {
+	            	                $dirsource=$fileentry['name'];
+	            	                $dirdest=preg_replace('/^'.preg_quote($oldref, '/').'/', $newref, $dirsource);
+	            	                $dirsource=$fileentry['path'].'/'.$dirsource;
+	            	                $dirdest=$fileentry['path'].'/'.$dirdest;
+	            	                @rename($dirsource, $dirdest);
+	            	            }
+	            	        }
+	            	    }
+	            	}
+
 
 		            $sql="UPDATE ".MAIN_DB_PREFIX."propal SET ref = '".$this->db->escape($newref)."' WHERE rowid=".$object->id;
 					dol_syslog("sql=".$sql);
@@ -183,6 +224,36 @@ class InterfaceForceProject
 					$ok=-1;
 				}
 			}
+        }
+        if ($action == 'PROPAL_CLOSE_REFUSED' && (! empty($conf->global->FORCEPROJECT_PROPAL_CLOSE_REFUSED_REASON_REQUIRED)))
+        {
+        	if (empty($object->array_options['options_reasonnotsigned']))
+        	{
+        		$langs->load("forceproject@forceproject");
+        		$this->errors[]=$langs->trans("PleaseEnterAReasonBefore");
+        		$ok=-1;
+        	}
+        	else
+        	{
+        		if (isset($object->array_options['options_probasigna']))
+        		{
+        			$object->array_options['options_probasigna'] = 0;
+        			$sql="UPDATE ".MAIN_DB_PREFIX."propal_extrafields SET probasigna = 0 WHERE fk_object=".$object->id;
+        			$resql=$this->db->query($sql);
+        		}
+        		$ok=1;
+        	}
+        }
+        if ($action == 'PROPAL_CLOSE_SIGNED' && (! empty($conf->global->FORCEPROJECT_PROPAL_CLOSE_REFUSED_REASON_REQUIRED)))
+        {
+        	if (isset($object->array_options['options_probasigna']))
+        	{
+        		$object->array_options['options_probasigna'] = 100;
+        		$object->array_options['options_date_cloture'] = dol_now();
+        		$sql="UPDATE ".MAIN_DB_PREFIX."propal_extrafields SET probasigna = 100, date_cloture = '".$this->db->idate(dol_now())."' WHERE fk_object=".$object->id;
+        		$resql=$this->db->query($sql);
+        	}
+        	$ok=1;
         }
 
     	// Actions
@@ -212,8 +283,9 @@ class InterfaceForceProject
 	            	$newref=preg_replace('/\{PROJECTREF\-[1-9]\}/',$projectref,$newref);  // When mask is  ...{PROJECTREF-9}... for example
 	            	$newref=preg_replace('/%%+/',$projectref,$newref);
 
-	            	// If we want the counter to start to 1 for each project
-	            	if (! empty($conf->global->FORCEPROJECT_COUNTER_FOREACH_PROJECT))
+	            	// If this is the first time we set the counter and we want the counter to start to 1 for each project
+	            	// The tag {PROJECTREF\-[1-9]\} must be present into ref numbering mask to have this working.
+	            	if (preg_match('/\(PROV/', $object->ref) && ! empty($conf->global->FORCEPROJECT_COUNTER_FOREACH_PROJECT))
 	            	{
 	            		// Clean current ref of invoice, so we can make again later a getNextNumRef and get same value for invoice number
 	            		$sql="UPDATE ".MAIN_DB_PREFIX."commande SET ref = '(TMP".$this->db->escape($newref).")' WHERE rowid=".$object->id;
@@ -229,6 +301,44 @@ class InterfaceForceProject
 		            	//var_dump($newref); exit;
 	            	}
 	            	dol_syslog("We validate order ".$object->id." oldref=".$object->ref." newref=".$newref." projectid=".$projectid." projectref=".$projectref);
+	            	$error = 0;
+
+
+	            	// Rename directory if dir was a temporary ref
+	            	if (preg_match('/^[\(]?PROV/i', $object->ref))
+	            	{
+	            	    // Now we rename also files into index
+	            	    $sql = 'UPDATE '.MAIN_DB_PREFIX."ecm_files set filename = CONCAT('".$this->db->escape($object->newref)."', SUBSTR(filename, ".(strlen($object->ref)+1).")), filepath = 'commande/".$this->db->escape($object->newref)."'";
+	            	    $sql.= " WHERE filename LIKE '".$this->db->escape($object->ref)."%' AND filepath = 'commande/".$object->db->escape($object->ref)."' and entity = ".$conf->entity;
+	            	    $resql = $this->db->query($sql);
+	            	    if (! $resql) { $error++; $this->error = $this->db->lasterror(); }
+
+	            	    // We rename directory ($this->ref = old ref, $num = new ref) in order not to lose the attachments
+	            	    $oldref = dol_sanitizeFileName($object->ref);
+	            	    $newref = dol_sanitizeFileName($newref);
+	            	    $dirsource = $conf->commande->multidir_output[$object->entity?$object->entity:$conf->entity].'/'.$oldref;
+	            	    $dirdest = $conf->commande->multidir_output[$object->entity?$object->entity:$conf->entity].'/'.$newref;
+
+	            	    if (! $error && file_exists($dirsource))
+	            	    {
+	            	        dol_syslog(get_class($this)."::validate rename dir ".$dirsource." into ".$dirdest);
+	            	        if (@rename($dirsource, $dirdest))
+	            	        {
+	            	            dol_syslog("Rename ok");
+	            	            // Rename docs starting with $oldref with $newref
+	            	            $listoffiles=dol_dir_list($dirdest, 'files', 1, '^'.preg_quote($oldref, '/'));
+	            	            foreach($listoffiles as $fileentry)
+	            	            {
+	            	                $dirsource=$fileentry['name'];
+	            	                $dirdest=preg_replace('/^'.preg_quote($oldref, '/').'/', $newref, $dirsource);
+	            	                $dirsource=$fileentry['path'].'/'.$dirsource;
+	            	                $dirdest=$fileentry['path'].'/'.$dirdest;
+	            	                @rename($dirsource, $dirdest);
+	            	            }
+	            	        }
+	            	    }
+	            	}
+
 
 		            $sql="UPDATE ".MAIN_DB_PREFIX."commande SET ref = '".$this->db->escape($newref)."' WHERE rowid=".$object->id;
 					dol_syslog("sql=".$sql);
@@ -270,7 +380,7 @@ class InterfaceForceProject
                 $projectid=$object->projet->id;
                 $projectref=$object->projet->ref;
 
-                $sql="SELECT facnumber as ref FROM ".MAIN_DB_PREFIX."facture WHERE rowid=".$object->id;
+                $sql="SELECT ref FROM ".MAIN_DB_PREFIX."facture WHERE rowid=".$object->id;
 
                 $resql=$this->db->query($sql);
                 if ($resql)
@@ -281,14 +391,14 @@ class InterfaceForceProject
                     $newref=preg_replace('/\{PROJECTREF\-[1-9]\}/',$projectref,$newref);  // When mask is  ...{PROJECTREF-9}... for example
                     $newref=preg_replace('/%%+/',$projectref,$newref);
 
-                    // If we want the counter of new invoice to start to 1 for each project
+                    // If this is the first time we set the counter and we want the counter to start to 1 for each project
                     // The tag {PROJECTREF\-[1-9]\} must be present into ref numbering mask to have this working.
-                    if (! empty($conf->global->FORCEPROJECT_COUNTER_FOREACH_PROJECT))
+                    if (preg_match('/\(PROV/', $object->ref) && ! empty($conf->global->FORCEPROJECT_COUNTER_FOREACH_PROJECT))
                     {
                         if ($object->type == 1)
                         {
                         	// Clean current ref of invoice, so we can make again later a getNextNumRef and get same value for invoice number
-                        	$sql="UPDATE ".MAIN_DB_PREFIX."facture SET facnumber = '(TMP".$this->db->escape($newref).")' WHERE rowid=".$object->id;
+                        	$sql="UPDATE ".MAIN_DB_PREFIX."facture SET ref = '(TMP".$this->db->escape($newref).")' WHERE rowid=".$object->id;
                         	$resql=$this->db->query($sql);
 
                         	$savmask=$conf->global->FACTURE_MERCURE_MASK_REPLACEMENT;
@@ -303,7 +413,7 @@ class InterfaceForceProject
                         elseif ($object->type == 2)
                         {
                         	// Clean current ref of invoice, so we can make again later a getNextNumRef and get same value for invoice number
-                        	$sql="UPDATE ".MAIN_DB_PREFIX."facture SET facnumber = '(TMP".$this->db->escape($newref).")' WHERE rowid=".$object->id;
+                        	$sql="UPDATE ".MAIN_DB_PREFIX."facture SET ref = '(TMP".$this->db->escape($newref).")' WHERE rowid=".$object->id;
                         	$resql=$this->db->query($sql);
 
                             $savmask=$conf->global->FACTURE_MERCURE_MASK_CREDIT;
@@ -318,7 +428,7 @@ class InterfaceForceProject
                         elseif ($object->type == 3)
                         {
                         	// Clean current ref of invoice, so we can make again later a getNextNumRef and get same value for invoice number
-                        	$sql="UPDATE ".MAIN_DB_PREFIX."facture SET facnumber = '(TMP".$this->db->escape($newref).")' WHERE rowid=".$object->id;
+                        	$sql="UPDATE ".MAIN_DB_PREFIX."facture SET ref = '(TMP".$this->db->escape($newref).")' WHERE rowid=".$object->id;
                         	$resql=$this->db->query($sql);
 
                             $savmask=$conf->global->FACTURE_MERCURE_MASK_DEPOSIT;
@@ -333,7 +443,7 @@ class InterfaceForceProject
                         else
                         {
                         	// Clean current ref of invoice, so we can make again later a getNextNumRef and get same value for invoice number
-                        	$sql="UPDATE ".MAIN_DB_PREFIX."facture SET facnumber = '(TMP".$this->db->escape($newref).")' WHERE rowid=".$object->id;
+                        	$sql="UPDATE ".MAIN_DB_PREFIX."facture SET ref = '(TMP".$this->db->escape($newref).")' WHERE rowid=".$object->id;
                         	$resql=$this->db->query($sql);
 
                             $savmask=$conf->global->FACTURE_MERCURE_MASK_INVOICE;
@@ -346,9 +456,47 @@ class InterfaceForceProject
                         }
                     }
 
-                    dol_syslog("We validate order ".$object->id." oldref=".$object->ref." newref=".$newref." projectid=".$projectid." projectref=".$projectref);
+                    dol_syslog("We validate invoice ".$object->id." oldref=".$object->ref." newref=".$newref." projectid=".$projectid." projectref=".$projectref);
+                    $error = 0;
 
-                    $sql="UPDATE ".MAIN_DB_PREFIX."facture SET facnumber = '".$this->db->escape($newref)."' WHERE rowid=".$object->id;
+
+                    // Rename directory if dir was a temporary ref
+                    if (preg_match('/^[\(]?PROV/i', $object->ref))
+                    {
+                        // Now we rename also files into index
+                        $sql = 'UPDATE '.MAIN_DB_PREFIX."ecm_files set filename = CONCAT('".$this->db->escape($object->newref)."', SUBSTR(filename, ".(strlen($object->ref)+1).")), filepath = 'facture/".$this->db->escape($object->newref)."'";
+                        $sql.= " WHERE filename LIKE '".$this->db->escape($object->ref)."%' AND filepath = 'facture/".$object->db->escape($object->ref)."' and entity = ".$conf->entity;
+                        $resql = $this->db->query($sql);
+                        if (! $resql) { $error++; $this->error = $this->db->lasterror(); }
+
+                        // We rename directory ($this->ref = old ref, $num = new ref) in order not to lose the attachments
+                        $oldref = dol_sanitizeFileName($object->ref);
+                        $newref = dol_sanitizeFileName($newref);
+                        $dirsource = $conf->facture->multidir_output[$object->entity?$object->entity:$conf->entity].'/'.$oldref;
+                        $dirdest = $conf->facture->multidir_output[$object->entity?$object->entity:$conf->entity].'/'.$newref;
+
+                        if (! $error && file_exists($dirsource))
+                        {
+                            dol_syslog(get_class($this)."::validate rename dir ".$dirsource." into ".$dirdest);
+                            if (@rename($dirsource, $dirdest))
+                            {
+                                dol_syslog("Rename ok");
+                                // Rename docs starting with $oldref with $newref
+                                $listoffiles=dol_dir_list($dirdest, 'files', 1, '^'.preg_quote($oldref, '/'));
+                                foreach($listoffiles as $fileentry)
+                                {
+                                    $dirsource=$fileentry['name'];
+                                    $dirdest=preg_replace('/^'.preg_quote($oldref, '/').'/', $newref, $dirsource);
+                                    $dirsource=$fileentry['path'].'/'.$dirsource;
+                                    $dirdest=$fileentry['path'].'/'.$dirdest;
+                                    @rename($dirsource, $dirdest);
+                                }
+                            }
+                        }
+                    }
+
+
+                    $sql="UPDATE ".MAIN_DB_PREFIX."facture SET ref = '".$this->db->escape($newref)."' WHERE rowid=".$object->id;
                     dol_syslog("sql=".$sql);
                     $resql=$this->db->query($sql);
 
@@ -410,8 +558,50 @@ class InterfaceForceProject
             	return -1;
             }
         }
+
+        if ($action == 'PROJECT_MODIFY' && ! empty($conf->global->FORCEPROJECT_NEW_PROJECT_REF_ON_NEW_THIRDPARTY))
+        {
+            if ($object->oldcopy->socid && $object->socid && $object->socid != $object->oldcopy->socid)
+            {
+                $thirdparty = new Societe($this->db);
+                $thirdparty->fetch($object->socid);
+
+                $defaultref='';
+                $modele = empty($conf->global->PROJECT_ADDON)?'mod_project_simple':$conf->global->PROJECT_ADDON;
+
+                // Search template files
+                $file=''; $classname=''; $filefound=0;
+                $dirmodels=array_merge(array('/'), (array) $conf->modules_parts['models']);
+                foreach($dirmodels as $reldir)
+                {
+                    $file=dol_buildpath($reldir."core/modules/project/".$modele.'.php', 0);
+                    if (file_exists($file))
+                    {
+                        $filefound=1;
+                        $classname = $modele;
+                        break;
+                    }
+                }
+
+                if ($filefound)
+                {
+                    $result=dol_include_once($reldir."core/modules/project/".$modele.'.php');
+                    $modProject = new $classname;
+
+                    $defaultref = $modProject->getNextValue($thirdparty, $object);
+                }
+
+                if (is_numeric($defaultref) && $defaultref <= 0) $defaultref='';
+
+                if ($defaultref)
+                {
+                    $object->ref = $defaultref;
+
+                    $object->update($user, 1);
+                }
+            }
+        }
+
         return $ok;
     }
-
 }
-

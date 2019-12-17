@@ -37,10 +37,11 @@ class eCommerceRemoteAccessMagento
 
     /**
      *      Constructor
+     *
      *      @param      DoliDB      $db         Database handler
      *      @param      string      $site       eCommerceSite
      */
-    function eCommerceRemoteAccessMagento($db, $site)
+    function __construct($db, $site)
     {
         $this->db = $db;
         $this->site = $site;
@@ -768,6 +769,8 @@ class eCommerceRemoteAccessMagento
 							'description' => $item['name'],
 							'product_type' => $item['product_type'],
 							'price' => $item['price'],
+							'remise' => $item['discount_amount'],
+                                                        'remise_percent' => round(($item['discount_amount']*100)/$item['price']),
 							'qty' => $item['qty_ordered'],
 							'tva_tx' => $item['tax_percent'],
 							'remote_simple_sku' => $item['simple_sku'],
@@ -791,6 +794,8 @@ class eCommerceRemoteAccessMagento
 								'description' => $item['name'],
 								'product_type' => $item['product_type'],
 								'price' => $item['price'],
+								'remise' => $item['discount_amount'],
+                                                                'remise_percent' => round(($item['discount_amount']*100)/$item['price']),
 								'qty' => $item['qty_ordered'],
 								'tva_tx' => $item['tax_percent'],
 								'remote_simple_sku' => $item['simple_sku'],
@@ -805,6 +810,8 @@ class eCommerceRemoteAccessMagento
 								'description' => $item['name'],
 								'product_type' => $item['product_type'],
 								'price' => $configurableItems[$item['parent_item_id']]['price'],
+								'remise' => $configurableItems[$item['parent_item_id']]['remise'],
+                                                                'remise_percent' => round(($configurableItems[$item['parent_item_id']]['remise']*100)/$configurableItems[$item['parent_item_id']]['price']),
 								'qty' => $item['qty_ordered'],
 								'tva_tx' => $configurableItems[$item['parent_item_id']]['tva_tx'],
 								'remote_simple_sku' => $configurableItems[$item['parent_item_id']]['remote_simple_sku'],
@@ -924,8 +931,8 @@ class eCommerceRemoteAccessMagento
 						'remote_increment_id' => $commande['increment_id'],
 						'remote_id_societe' => $remoteIdSociete,
 						'ref_client' => $commande['increment_id'],
-						'date_commande' => $commande['created_at'],
-						'date_livraison' => $deliveryDate,
+					    'date_commande' => $commande['created_at'],
+					    'date_livraison' => $deliveryDate,
 						'items' => $items,
 						'delivery' => $delivery,
 						'socpeopleCommande' => $socpeopleCommande,
@@ -1075,7 +1082,9 @@ class eCommerceRemoteAccessMagento
 							'product_type' => $product_type,
 							'price' => $item['price'],
 							'qty' => $item['qty'],
-							'tva_tx' => $vatrateforitem
+							'remise_percent' => round(($item['discount_amount']*100)/$item['price']),
++                                                       'remise' => $item['discount_amount'],
++                                                       'tva_tx' => $vatrateforitem
 							);
 						} else {
 							// If item has a parent item id defined in $configurableItems, it's a child simple item so we get it's price and tax values instead of 0
@@ -1090,7 +1099,8 @@ class eCommerceRemoteAccessMagento
 								'product_type' => $product_type,
 								'price' => $item['price'],
 								'qty' => $item['qty'],
-								'tva_tx' => $vatrateforitem
+								'tva_tx' => $vatrateforitem,
++                                                               'remise_percent' => round(($item['discount_amount']*100)/$item['price'])
 								);
 							} else {
 								$tmpitem = array(
@@ -1100,14 +1110,15 @@ class eCommerceRemoteAccessMagento
 								'product_type' => $product_type,
 								'price' => $configurableItems[$parent_item_id]['price'],
 								'qty' => $item['qty'],
-								'tva_tx' => $configurableItems[$parent_item_id]['tva_tx']
+								'tva_tx' => $configurableItems[$parent_item_id]['tva_tx'],
++                                                               'remise_percent' => $configurableItems[$parent_item_id]['remise_percent']
 								);
 							}
 
 							$items[] = $tmpitem;
 
 							// There is a fixed discount, we must include it into a new line
-							if ($item['discount_amount'])
+							/*if ($item['discount_amount'])
 							{
 								$tmpitemdiscount = array(
 								'item_id' => 'discount_with_vat_'.$tmpitem['tva_tx'].'_for_'.$item['item_id'],
@@ -1119,7 +1130,7 @@ class eCommerceRemoteAccessMagento
 								);
 
 								$items[] = $tmpitemdiscount;
-							}
+							}*/
 						}
 					}
 
@@ -1329,13 +1340,13 @@ class eCommerceRemoteAccessMagento
     /**
      * Return the magento's category tree
      *
-     * @return  array|boolean       Array with categories or false if error
+     * @return  array|boolean       Array with categories or false if error:
+     *                              array(array('level'=>, 'updated_at'=>, 'category_id'=> ,'children'=>array(...
      */
     public function getRemoteCategoryTree()
     {
         dol_syslog("eCommerceRemoteAccessMagento getRemoteCategoryTree");
         try {
-            //$result = $this->client->call($this->session, 'auguria_dolibarrapi_catalog_category.tree');
             $result = $this->client->call($this->session, 'catalog_category.tree');
             //dol_syslog($this->client->__getLastRequest());
         } catch (SoapFault $fault) {
@@ -1361,7 +1372,6 @@ class eCommerceRemoteAccessMagento
     {
         dol_syslog("eCommerceRemoteAccessMagento getRemoteCategoryAtt session=".$this->session);
         try {
-            //$result = $this->client->call($this->session, 'auguria_dolibarrapi_catalog_category.tree');
             $result = $this->client->call($this->session, 'catalog_category_attribute.list');
             //dol_syslog($this->client->__getLastRequest());
         } catch (SoapFault $fault) {
@@ -1385,7 +1395,6 @@ class eCommerceRemoteAccessMagento
     {
         dol_syslog("eCommerceRemoteAccessMagento getRemoteAddressIdForSociete remote customer_id=".$remote_thirdparty_id);
         try {
-            //$result = $this->client->call($this->session, 'auguria_dolibarrapi_catalog_category.tree');
             $result = $this->client->call($this->session, 'customer_address.list', array('customerId'=>$remote_thirdparty_id));
             //dol_syslog($this->client->__getLastRequest());
         } catch (SoapFault $fault) {
@@ -1410,7 +1419,6 @@ class eCommerceRemoteAccessMagento
     {
         dol_syslog("eCommerceRemoteAccessMagento getCategoryData remote category_id=".$category_id);
         try {
-            //$result = $this->client->call($this->session, 'auguria_dolibarrapi_catalog_category.tree');
             $result = $this->client->call($this->session, 'catalog_category.info', array('categoryId'=>$category_id));
             //dol_syslog($this->client->__getLastRequest());
         } catch (SoapFault $fault) {
