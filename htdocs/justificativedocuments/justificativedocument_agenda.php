@@ -66,7 +66,7 @@ else
 $search_agenda_label=GETPOST('search_agenda_label');
 
 // Security check - Protection if external user
-//if ($user->societe_id > 0) access_forbidden();
+//if ($user->societe_id > 0) accessforbidden();
 //if ($user->societe_id > 0) $socid = $user->societe_id;
 //$result = restrictedArea($user, 'justificativedocuments', $id);
 
@@ -92,6 +92,8 @@ $extrafields->fetch_name_optionals_label($object->table_element);
 // Load object
 include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php';  // Must be include, not include_once  // Must be include, not include_once. Include fetch and fetch_thirdparty but not fetch_optionals
 if ($id > 0 || ! empty($ref)) $upload_dir = $conf->justificativedocuments->multidir_output[$object->entity] . "/" . $object->id;
+// Force saving documents on main company 1
+$upload_dir = preg_replace('/\/[0-9]+\/justificativedocuments/', '/justificativedocuments', $conf->justificativedocuments->dir_output)."/justificativedocument/".dol_sanitizeFileName($object->ref);
 
 
 
@@ -248,11 +250,11 @@ if ($object->id > 0)
 		//print load_fiche_titre($langs->trans("ActionsOnJustificativeDocument"), '', '');
 
         // List of all actions
-		$filters=array();
-        $filters['search_agenda_label']=$search_agenda_label;
+		$filters = array();
+        $filters['search_agenda_label'] = $search_agenda_label;
 
         // TODO Replace this with same code than into list.php
-        //show_actions_done($conf, $langs, $db, $object, null, 0, $actioncode, '', $filters, $sortfield, $sortorder);
+        show_actions_done($conf, $langs, $db, $object, null, 0, $actioncode, '', $filters, $sortfield, $sortorder);
     }
 }
 

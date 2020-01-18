@@ -18,31 +18,40 @@
 #
 
 # Module label 'ModuleJustificativeDocumentsName'
-ModuleJustificativeDocumentsName = JustificativeDocuments
+ModuleJustificativeDocumentsName = Pièces justificatives
 # Module description 'ModuleJustificativeDocumentsDesc'
-ModuleJustificativeDocumentsDesc = Description de JustificativeDocuments
+ModuleJustificativeDocumentsDesc = Permet à chaque utilisateur de soumettre des pièces justificatives
+JustificativeDocument=Pièce justificative
+JustificativeDocuments=Pièces justificatives
+TypeOfJustificative=Type de pièces justificatives
 
 #
 # Page d'administration
 #
-JustificativeDocumentsSetup = Configuration du module JustificativeDocuments
+JustificativeDocumentsSetup = Configuration du module Pièces justificatives
 Settings = Réglages
-JustificativeDocumentsSetupPage = Page de configuration du module JustificativeDocuments
+JustificativeDocumentsSetupPage = Page de configuration du module Pièces justificatives
 
 #
 # Page À propos
 #
 About = À propos
-JustificativeDocumentsAbout = À propos de JustificativeDocuments
-JustificativeDocumentsAboutPage = Page à propos de JustificativeDocuments
+JustificativeDocumentsAbout = À propos de Pièces justificatives
+JustificativeDocumentsAboutPage = Page à propos de Pièces justificatives
 
-#
-# Page d'exemple
-#
-MyPageName = Nom de ma page
 
-#
-# Box d'exemple
-#
-MyWidget = Mon widget
-MyWidgetDescription = Description de mon widget
+EnterHereOnlyJustificativeDocument=Utilisez cette fonction pour créer et publier des pièces justificatives administratives qui n'ont pas leur place comme documents justificatifs de notes de frais.
+ConfirmCloneJustificativeDocument=Etes vous sur de vouloir cloner cette pièce justificative?
+JUSTIFICATIVEDOCUMENT_VALIDATEInDolibarr=Pièce justificative %s validée
+JUSTIFICATIVEDOCUMENT_UNVALIDATEInDolibarr=Pièce justificative %s repassée en brouillon
+JUSTIFICATIVEDOCUMENT_APPROVEInDolibarr=Pièce justificative %s approuvée
+JUSTIFICATIVEDOCUMENT_DELETEInDolibarr=Pièce justificative %s effacée
+AddAtLeastOneLinkedFile=Vous devez ajouter au moins 1 fichier justificatif comme pièce jointe.
+
+
+CodeOfType=Code du type de pièces
+LabelOfType=Libellé du type de pièces
+
+justificativedocument@justificativedocuments=Pièces justificatives
+DeleteJustificativeDocument=Effacer la pièce justificative
+PercentReimbursed=Part remboursée (%%)

@@ -16,20 +16,24 @@
 
 CREATE TABLE llx_justificativedocuments_justificativedocument(
 	-- BEGIN MODULEBUILDER FIELDS
-	rowid integer AUTO_INCREMENT PRIMARY KEY NOT NULL, 
+	rowid integer AUTO_INCREMENT PRIMARY KEY NOT NULL,
+	entity integer DEFAULT 1 NOT NULL,
 	ref varchar(128) DEFAULT '(PROV)' NOT NULL, 
 	fk_project integer, 
 	description text, 
 	note_public text, 
 	note_private text, 
 	date_creation datetime NOT NULL, 
+    date_validation datetime NULL, 
 	tms timestamp, 
 	fk_user integer NOT NULL, 
 	fk_user_creat integer NOT NULL, 
 	fk_user_modif integer, 
+    fk_user_valid integer, 
 	import_key varchar(14), 
 	status integer NOT NULL, 
-	fk_type integer NOT NULL, 
+	fk_type integer NOT NULL,
+	amount double(24,8), 
 	date_start date, 
 	date_end date
 	-- END MODULEBUILDER FIELDS

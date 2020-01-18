@@ -76,11 +76,13 @@ $extrafields->fetch_name_optionals_label($object->table_element);
 // Load object
 include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php';  // Must be include, not include_once  // Must be include, not include_once. Include fetch and fetch_thirdparty but not fetch_optionals
 
-//if ($id > 0 || ! empty($ref)) $upload_dir = $conf->justificativedocuments->multidir_output[$object->entity?$object->entity:$conf->entity] . "/justificativedocument/" . dol_sanitizeFileName($object->id);
-if ($id > 0 || ! empty($ref)) $upload_dir = $conf->justificativedocuments->multidir_output[$object->entity?$object->entity:$conf->entity] . "/justificativedocument/" . dol_sanitizeFileName($object->ref);
+//if ($id > 0 || ! empty($ref)) $upload_dir = $conf->justificativedocuments->multidir_output[$object->entity?$object->entity:$conf->entity]."/justificativedocument/".dol_sanitizeFileName($object->id);
+if ($id > 0 || ! empty($ref)) $upload_dir = $conf->justificativedocuments->multidir_output[$object->entity?$object->entity:$conf->entity]."/justificativedocument/".dol_sanitizeFileName($object->ref);
+// Force saving documents on main company 1
+$upload_dir = preg_replace('/\/[0-9]+\/justificativedocuments/', '/justificativedocuments', $conf->justificativedocuments->dir_output)."/justificativedocument/".dol_sanitizeFileName($object->ref);
 
 // Security check - Protection if external user
-//if ($user->societe_id > 0) access_forbidden();
+//if ($user->societe_id > 0) accessforbidden();
 //if ($user->societe_id > 0) $socid = $user->societe_id;
 //$result = restrictedArea($user, 'justificativedocuments', $object->id);
 
@@ -131,7 +133,7 @@ if ($object->id)
     print '<div class="fichecenter">';
 
     print '<div class="underbanner clearboth"></div>';
-	print '<table class="border centpercent">';
+	print '<table class="border centpercent tableforfield">';
 
 	// Number of files
 	print '<tr><td class="titlefield">'.$langs->trans("NbOfAttachedFiles").'</td><td colspan="3">'.count($filearray).'</td></tr>';

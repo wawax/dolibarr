@@ -99,7 +99,7 @@ if (empty($action) && empty($id) && empty($ref)) $action='view';
 include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php';  // Must be include, not include_once.
 
 // Security check - Protection if external user
-//if ($user->societe_id > 0) access_forbidden();
+//if ($user->societe_id > 0) accessforbidden();
 //if ($user->societe_id > 0) $socid = $user->societe_id;
 //$isdraft = (($object->statut == JustificativeDocument::STATUS_DRAFT) ? 1 : 0);
 //$result = restrictedArea($user, 'justificativedocuments', $object->id, '', '', 'fk_soc', 'rowid', $isdraft);
@@ -108,7 +108,7 @@ $permissionnote = $user->rights->justificativedocuments->justificativedocuments-
 $permissiondellink = $user->rights->justificativedocuments->justificativedocuments->write;	// Used by the include of actions_dellink.inc.php
 $permissiontoadd = $user->rights->justificativedocuments->justificativedocuments->write; 	// Used by the include of actions_addupdatedelete.inc.php// Used by the include of actions_addupdatedelete.inc.php and actions_lineupdown.inc.php
 $permissiontodelete = $user->rights->justificativedocuments->justificativedocuments->delete || ($permissiontoadd && $object->status == 0);
-
+$permissiontoapprove = $user->rights->justificativedocuments->justificativedocuments->approve;
 
 
 /*
@@ -126,12 +126,14 @@ if (empty($reshook))
     $backurlforlist = dol_buildpath('/justificativedocuments/justificativedocument_list.php', 1);
 
     if (empty($backtopage) || ($cancel && empty($id))) {
-    	if (empty($id) && (($action != 'add' && $action != 'create') || $cancel)) $backtopage = $backurlforlist;
-    	else $backtopage = dol_buildpath('/justificativedocuments/justificativedocument_card.php', 1).'?id='.($id > 0 ? $id : '__ID__');
+        if (empty($backtopage) || ($cancel && strpos($backtopage, '__ID__'))) {
+            if (empty($id) && (($action != 'add' && $action != 'create') || $cancel)) $backtopage = $backurlforlist;
+	    	else $backtopage = dol_buildpath('/justificativedocuments/justificativedocument_card.php', 1).'?id='.($id > 0 ? $id : '__ID__');
+        }
     }
     $triggermodname = 'JUSTIFICATIVEDOCUMENTS_JUSTIFICATIVEDOCUMENT_MODIFY';	// Name of trigger action code to execute when we modify record
 
-    // Actions cancel, add, update, delete or clone
+    // Actions cancel, add, update, confirm_validate, delete or clone
     include DOL_DOCUMENT_ROOT.'/core/actions_addupdatedelete.inc.php';
 
     // Actions when linking object each other
@@ -152,6 +154,35 @@ if (empty($reshook))
     	$object->setProject(GETPOST('projectid', 'int'));
     }
 
+    // Action approve object
+    if ($action == 'confirm_approve' && $confirm == 'yes' && $permissiontoadd)
+    {
+        $result = $object->approve($user);
+        if ($result >= 0)
+        {
+            // Define output language
+            if (empty($conf->global->MAIN_DISABLE_PDF_AUTOUPDATE))
+            {
+                $outputlangs = $langs;
+                $newlang = '';
+                if ($conf->global->MAIN_MULTILANGS && empty($newlang) && GETPOST('lang_id', 'aZ09')) $newlang = GETPOST('lang_id', 'aZ09');
+                if ($conf->global->MAIN_MULTILANGS && empty($newlang))	$newlang = $object->thirdparty->default_lang;
+                if (!empty($newlang)) {
+                    $outputlangs = new Translate("", $conf);
+                    $outputlangs->setDefaultLang($newlang);
+                }
+                $model = $object->modelpdf;
+                $ret = $object->fetch($id); // Reload to get new records
+
+                $object->generateDocument($model, $outputlangs, 0, 0, 0);
+            }
+        }
+        else
+        {
+            setEventMessages($object->error, $object->errors, 'errors');
+        }
+    }
+
     // Actions to send emails
     $trigger_name='JUSTIFICATIVEDOCUMENT_SENTBYMAIL';
     $autocopy='MAIN_MAIL_AUTOCOPY_JUSTIFICATIVEDOCUMENT_TO';
@@ -164,8 +195,6 @@ if (empty($reshook))
 
 /*
  * View
- *
- * Put here all code to build page
  */
 
 $form=new Form($db);
@@ -194,6 +223,8 @@ if ($action == 'create')
 {
 	print load_fiche_titre($langs->trans("NewObject", $langs->transnoentitiesnoconv("JustificativeDocument")));
 
+	print '<span class="opacitymedium">'.$langs->trans("EnterHereOnlyJustificativeDocument").'</span><br><br>';
+
 	print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">';
 	print '<input type="hidden" name="token" value="'.$_SESSION['newtoken'].'">';
 	print '<input type="hidden" name="action" value="add">';
@@ -208,7 +239,7 @@ if ($action == 'create')
 	foreach($object->fields as $key => $val)
 	{
 	    // Discard if extrafield is a hidden field on form
-	    if (abs($val['visible']) != 1) continue;
+	    if (abs($val['visible']) != 1 && abs($val['visible']) != 3) continue;
 
 	    if (array_key_exists('enabled', $val) && isset($val['enabled']) && ! verifCond($val['enabled'])) continue;	// We don't want this field
 
@@ -232,7 +263,9 @@ if ($action == 'create')
 	        print $langs->trans("User");
 	        print '</td><td>';
 	        //$array = array('ee'=>'rr');
-	        print $form->select_dolusers($user->id, 'fk_user', 0, null, 0, 'hierarchyme');
+	        $include = 'hierarchyme';
+	        if (! empty($user->rights->justificativedocuments->justificativedocuments->write_all)) $include = '';
+	        print $form->select_dolusers($user->id, 'fk_user', 0, null, 0, $include);
 	        print '</td>';
 	        print '</tr>';
 	    } else {
@@ -297,7 +330,7 @@ if (($id || $ref) && $action == 'edit')
 	foreach($object->fields as $key => $val)
 	{
 	    // Discard if extrafield is a hidden field on form
-	    if (abs($val['visible']) != 1 && abs($val['visible']) != 4) continue;
+	    if (abs($val['visible']) != 1 && abs($val['visible']) != 3 && abs($val['visible']) != 4) continue;
 
 	    if (array_key_exists('enabled', $val) && isset($val['enabled']) && ! verifCond($val['enabled'])) continue;	// We don't want this field
 
@@ -321,7 +354,9 @@ if (($id || $ref) && $action == 'edit')
 	        print $langs->trans("User");
 	        print '</td><td>';
 	        //$array = array('ee'=>'rr');
-	        print $form->select_dolusers($object->fk_user, 'fk_user', 0, null, 0, 'hierarchyme');
+	        $include = 'hierarchyme';
+	        if (! empty($user->rights->justificativedocuments->justificativedocuments->write_all)) $include = '';
+	        print $form->select_dolusers($object->fk_user, 'fk_user', 0, null, 0, $include);
 	        print '</td>';
 	        print '</tr>';
 	    } else {
@@ -470,7 +505,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	print '<table class="border centpercent">'."\n";
 
 	// Common attributes
-	//$keyforbreak='fieldkeytoswitchonsecondcolumn';
+	$keyforbreak='fk_user_valid';  	                    // We change column just after this field
 	//unset($object->fields['fk_project']);				// Hide field already shown in banner
 	//unset($object->fields['fk_soc']);					// Hide field already shown in banner
 	include DOL_DOCUMENT_ROOT . '/core/tpl/commonfields_view.tpl.php';
@@ -552,32 +587,93 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
     	if (empty($reshook))
     	{
     	    // Send
-            print '<a class="butAction" href="' . $_SERVER["PHP_SELF"] . '?id=' . $object->id . '&action=presend&mode=init#formmailbeforetitle">' . $langs->trans('SendMail') . '</a>'."\n";
+            //print '<a class="butAction" href="' . $_SERVER["PHP_SELF"] . '?id=' . $object->id . '&action=presend&mode=init#formmailbeforetitle">' . $langs->trans('SendMail') . '</a>'."\n";
 
-            // Back to draft
-            if (! empty($user->rights->justificativedocuments->justificativedocuments->write) && $object->status == $object::STATUS_VALIDATED)
-            {
-            	print '<a class="butAction" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=setdraft">' . $langs->trans("SetToDraft") . '</a>';
-            }
+    	    // Back to draft
+    	    if ($object->status == $object::STATUS_VALIDATED)
+    	    {
+    	        if ($permissiontoadd)
+    	        {
+    	            print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&action=confirm_setdraft&confirm=yes">'.$langs->trans("SetToDraft").'</a>';
+    	        }
+    	    }
+    	    if ($object->status == $object::STATUS_APPROVED)
+    	    {
+   	            if ($permissiontoapprove)
+    	        {
+    	            print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&action=confirm_setdraft&confirm=yes">'.$langs->trans("SetToDraft").'</a>';
+    	        }
+    	    }
 
             // Modify
-            if (! empty($user->rights->justificativedocuments->justificativedocuments->write))
+    	    if ($object->status == $object::STATUS_DRAFT || $user->rights->justificativedocuments->justificativedocuments->approve)    // User with permission to approve must be able to edit/fix and set reimbursed amount.
+    	    {
+    	        if ($permissiontoadd)
+        		{
+        			print '<a class="butAction" href="'.$_SERVER["PHP_SELF"].'?id='.$object->id.'&amp;action=edit">'.$langs->trans("Modify").'</a>'."\n";
+        		}
+        		else
+        		{
+        			print '<a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("NotEnoughPermissions")).'">'.$langs->trans('Modify').'</a>'."\n";
+        		}
+    	    }
+
+    		// Validate
+    		if ($object->status == $object::STATUS_DRAFT)
     		{
-    			print '<a class="butAction" href="'.$_SERVER["PHP_SELF"].'?id='.$object->id.'&amp;action=edit">'.$langs->trans("Modify").'</a>'."\n";
+    		    if ($permissiontoadd)
+    		    {
+    		        $upload_dir = $conf->justificativedocuments->dir_output . "/justificativedocument/" . dol_sanitizeFileName($object->ref);
+    		        // Force saving documents on main company 1
+    		        $upload_dir = preg_replace('/\/[0-9]+\/justificativedocuments/', '/justificativedocuments', $conf->justificativedocuments->dir_output)."/justificativedocument/".dol_sanitizeFileName($object->ref);
+
+    		        $nbFiles = count(dol_dir_list($upload_dir, 'files', 0, '', '(\.meta|_preview.*\.png)$'));
+    		        $nbLinks=Link::count($db, $object->element, $object->id);
+
+    		        if (($nbFiles + $nbLinks) > 0)
+    		        {
+    		            print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&action=confirm_validate&confirm=yes">'.$langs->trans("Validate").'</a>';
+    		        }
+    		        else
+    		        {
+    		            print '<a class="butActionRefused" href="" title="'.$langs->trans("AddAtLeastOneLinkedFile").'">'.$langs->trans("Validate").'</a>';
+    		        }
+    		    }
     		}
-    		else
+
+    		// Approve
+    		if ($object->status == $object::STATUS_VALIDATED)
     		{
-    			print '<a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("NotEnoughPermissions")).'">'.$langs->trans('Modify').'</a>'."\n";
+    		    if ($permissiontoapprove)
+    		    {
+    		        $upload_dir = $conf->justificativedocuments->dir_output . "/justificativedocument/" . dol_sanitizeFileName($object->ref);
+    		        // Force saving documents on main company 1
+    		        $upload_dir = preg_replace('/\/[0-9]+\/justificativedocuments/', '/justificativedocuments', $conf->justificativedocuments->dir_output)."/justificativedocument/".dol_sanitizeFileName($object->ref);
+
+    		        $nbFiles = count(dol_dir_list($upload_dir, 'files', 0, '', '(\.meta|_preview.*\.png)$'));
+    		        $nbLinks=Link::count($db, $object->element, $object->id);
+
+    		        if (($nbFiles + $nbLinks) > 0)
+    		        {
+    		            print '<a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&action=confirm_approve&confirm=yes">'.$langs->trans("Approve").'</a>';
+    		        }
+    		        else
+    		        {
+    		            print '<a class="butActionRefused" href="" title="'.$langs->trans("AddAtLeastOneLinkedFile").'">'.$langs->trans("Approve").'</a>';
+    		        }
+    		    } else {
+    		        print '<a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("NotEnoughPermissions")).'">'.$langs->trans('Approve').'</a>'."\n";
+    		    }
     		}
 
     		// Clone
-    		if (! empty($user->rights->justificativedocuments->justificativedocuments->write))
+    		if ($permissiontoadd)
     		{
-    			print '<a class="butAction" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&amp;socid=' . $object->socid . '&amp;action=clone&amp;object=order">' . $langs->trans("ToClone") . '</a>'."\n";
+    			//print '<a class="butAction" href="' . $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&amp;socid=' . $object->socid . '&amp;action=clone&amp;object=order">' . $langs->trans("ToClone") . '</a>'."\n";
     		}
 
     		/*
-    		if ($user->rights->justificativedocuments->justificativedocuments->write)
+    		if ($permissiontoadd)
     		{
     			if ($object->status == 1)
     		 	{
@@ -640,7 +736,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	    // List of actions on element
 	    include_once DOL_DOCUMENT_ROOT . '/core/class/html.formactions.class.php';
 	    $formactions = new FormActions($db);
-	    $somethingshown = $formactions->showactions($object, 'justificativedocument', $socid, 1, '', $MAXEVENT, '', $morehtmlright);
+	    $somethingshown = $formactions->showactions($object, $object->element, $socid, 1, '', $MAXEVENT, '', $morehtmlright);
 
 	    print '</div></div></div>';
 	}

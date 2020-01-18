@@ -33,9 +33,9 @@ require_once DOL_DOCUMENT_ROOT . '/core/class/commonobject.class.php';
 class JustificativeDocument extends CommonObject
 {
 	/**
-	 * @var string ID to identify managed object
+	 * @var string ID to identify managed object (field 'elementtype' into llx_actioncomm)
 	 */
-	public $element = 'justificativedocument';
+	public $element = 'justificativedocuments_justificativedocument';
 
 	/**
 	 * @var string Name of table without prefix where object is stored
@@ -44,8 +44,10 @@ class JustificativeDocument extends CommonObject
 
 	/**
 	 * @var int  Does justificativedocument support multicompany module ? 0=No test on entity, 1=Test with field entity, 2=Test with link by societe
+	 *
+	 * Note: To allow sharing on an external object, you must set MULTICOMPANY_EXTERNAL_MODULES_SHARING=myobject
 	 */
-	public $ismultientitymanaged = 0;
+	public $ismultientitymanaged = 1;
 
 	/**
 	 * @var int  Does justificativedocument support extrafields ? 0=No, 1=Yes
@@ -60,11 +62,12 @@ class JustificativeDocument extends CommonObject
 
 	const STATUS_DRAFT = 0;
 	const STATUS_VALIDATED = 1;
+	const STATUS_APPROVED = 2;
 	const STATUS_CANCELED = 9;
 
 
 	/**
-	 *  'type' if the field format ('integer', 'integer:ObjectClass:PathToClass[:AddCreateButtonOrNot[:Filter]]', 'varchar(x)', 'double(24,8)', 'text', 'html', 'datetime', 'timestamp', 'float')
+	 *  'type' if the field format ('integer', 'integer:ObjectClass:PathToClass[:AddCreateButtonOrNot[:Filter]]', 'varchar(x)', 'double(24,8)', 'real', 'price', 'text', 'html', 'date', 'datetime', 'timestamp', 'duration', 'mail', 'phone', 'url', 'password')
 	 *         Note: Filter can be a string like "(t.ref:like:'SO-%') or (t.date_creation:<:'20160101') or (t.nature:is:NULL)"
 	 *  'label' the translation key.
 	 *  'enabled' is a condition when the field must be managed.
@@ -91,21 +94,26 @@ class JustificativeDocument extends CommonObject
 	 */
 	public $fields=array(
 		'rowid' => array('type'=>'integer', 'label'=>'TechnicalID', 'enabled'=>1, 'position'=>1, 'notnull'=>1, 'visible'=>-1, 'index'=>1, 'comment'=>"Id"),
-		'ref' => array('type'=>'varchar(128)', 'label'=>'Ref', 'enabled'=>1, 'position'=>10, 'notnull'=>1, 'visible'=>4, 'noteditable'=>'1', 'default'=>'(PROV)', 'index'=>1, 'searchall'=>1, 'showoncombobox'=>'1', 'comment'=>"Reference of object"),
+	    'entity' => array('type'=>'integer', 'label'=>'Entity', 'enabled'=>1, 'visible'=>0, 'notnull'=>1, 'default'=>1, 'index'=>1, 'position'=>5),
+	    'ref' => array('type'=>'varchar(128)', 'label'=>'Ref', 'enabled'=>1, 'position'=>10, 'notnull'=>1, 'visible'=>4, 'noteditable'=>'1', 'default'=>'(PROV)', 'index'=>1, 'searchall'=>1, 'showoncombobox'=>'1', 'comment'=>"Reference of object"),
 	    'fk_type' => array('type'=>'integer:JustificativeType:justificativedocuments/class/justificativetype.class.php:0:active=1', 'label'=>'Type', 'enabled'=>1, 'position'=>20, 'notnull'=>1, 'visible'=>1,),
 	    'date_start' => array('type'=>'date', 'label'=>'DateStart', 'enabled'=>1, 'position'=>30, 'notnull'=>0, 'visible'=>1,),
 	    'date_end' => array('type'=>'date', 'label'=>'DateEnd', 'enabled'=>1, 'position'=>32, 'notnull'=>0, 'visible'=>1,),
+	    'amount' => array('type'=>'price', 'label'=>'Amount', 'enabled'=>1, 'visible'=>1, 'isameasure'=>1, 'position'=>35),
+	    'percent_reimbursed' => array('type'=>'double(24,8)', 'label'=>'PercentReimbursed', 'enabled'=>1, 'visible'=>5, 'noteditable'=>1, 'position'=>35),
 	    'fk_user' => array('type'=>'integer:User:user/class/user.class.php:0:statut=1 AND entity IN (__SHARED_ENTITIES__)', 'label'=>'User', 'enabled'=>1, 'position'=>35, 'notnull'=>1, 'visible'=>1, 'foreignkey'=>'user.rowid',),
 	    //'fk_project' => array('type'=>'integer:Project:projet/class/project.class.php:1', 'label'=>'Project', 'enabled'=>1, 'position'=>52, 'notnull'=>-1, 'visible'=>-1, 'index'=>1),
-		'description' => array('type'=>'text', 'label'=>'Description', 'enabled'=>1, 'position'=>60, 'notnull'=>-1, 'visible'=>3,),
 		'note_public' => array('type'=>'html', 'label'=>'NotePublic', 'enabled'=>1, 'position'=>61, 'notnull'=>-1, 'visible'=>0,),
 		'note_private' => array('type'=>'html', 'label'=>'NotePrivate', 'enabled'=>1, 'position'=>62, 'notnull'=>-1, 'visible'=>0,),
 		'date_creation' => array('type'=>'datetime', 'label'=>'DateCreation', 'enabled'=>1, 'position'=>500, 'notnull'=>1, 'visible'=>-2,),
 		'tms' => array('type'=>'timestamp', 'label'=>'DateModification', 'enabled'=>1, 'position'=>501, 'notnull'=>-1, 'visible'=>-2,),
-		'fk_user_creat' => array('type'=>'integer:User:user/class/user.class.php', 'label'=>'UserAuthor', 'enabled'=>1, 'position'=>510, 'notnull'=>1, 'visible'=>-2, 'foreignkey'=>'user.rowid',),
+	    'date_validation' => array('type'=>'datetime',     'label'=>'DateValidation',     'enabled'=>1, 'visible'=>-2, 'position'=>502),
+	    'fk_user_creat' => array('type'=>'integer:User:user/class/user.class.php', 'label'=>'UserAuthor', 'enabled'=>1, 'position'=>510, 'notnull'=>1, 'visible'=>-2, 'foreignkey'=>'user.rowid',),
 		'fk_user_modif' => array('type'=>'integer:User:user/class/user.class.php', 'label'=>'UserModif', 'enabled'=>1, 'position'=>511, 'notnull'=>-1, 'visible'=>-2,),
-		'import_key' => array('type'=>'varchar(14)', 'label'=>'ImportId', 'enabled'=>1, 'position'=>1000, 'notnull'=>-1, 'visible'=>-2,),
-	    'status' => array('type'=>'integer', 'label'=>'Status', 'enabled'=>1, 'position'=>1000, 'notnull'=>1, 'default'=>0, 'visible'=>2, 'index'=>1, 'arrayofkeyval'=>array('0'=>'Brouillon', '1'=>'Valid&eacute;', '9'=>'Annul&eacute;'),),
+		'fk_user_valid' => array('type'=>'integer:User:user/class/user.class.php',      'label'=>'UserValidation',        'enabled'=>1, 'visible'=>-2, 'position'=>512),
+	    'description' => array('type'=>'text', 'label'=>'Description', 'enabled'=>1, 'position'=>1000, 'notnull'=>-1, 'visible'=>3,),
+	    'import_key' => array('type'=>'varchar(14)', 'label'=>'ImportId', 'enabled'=>1, 'position'=>1000, 'notnull'=>-1, 'visible'=>-2,),
+	    'status' => array('type'=>'integer', 'label'=>'Status', 'enabled'=>1, 'position'=>1000, 'notnull'=>1, 'default'=>0, 'visible'=>2, 'index'=>1, 'arrayofkeyval'=>array('0'=>'Draft', '1'=>'Validated', '2'=>'Approved', '9'=>'Canceled'),),
 	);
 	public $rowid;
 	public $ref;
@@ -167,12 +175,17 @@ class JustificativeDocument extends CommonObject
 	 */
 	public function __construct(DoliDB $db)
 	{
-		global $conf, $langs;
+		global $conf, $langs, $user;
 
 		$this->db = $db;
 
 		if (empty($conf->global->MAIN_SHOW_TECHNICAL_ID) && isset($this->fields['rowid'])) $this->fields['rowid']['visible']=0;
 		if (empty($conf->multicompany->enabled) && isset($this->fields['entity'])) $this->fields['entity']['enabled']=0;
+
+		if ($user->rights->justificativedocuments->justificativedocuments->approve) {
+		    $this->fields['percent_reimbursed']['visible'] = 1;
+		    $this->fields['percent_reimbursed']['noteditable'] = 0;
+		}
 
 		// Unset fields that are disabled
 		foreach($this->fields as $key => $val)
@@ -452,6 +465,137 @@ class JustificativeDocument extends CommonObject
 
 
 	/**
+	 *	Validate bom
+	 *
+	 *	@param		User	$user     		User making status change
+	 *  @param		int		$notrigger		1=Does not execute triggers, 0= execute triggers
+	 *	@return  	int						<=0 if OK, 0=Nothing done, >0 if KO
+	 */
+	public function validate($user, $notrigger = 0)
+	{
+	    global $conf, $langs;
+
+	    require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
+
+	    $error = 0;
+
+	    // Protection
+	    if ($this->statut == self::STATUS_VALIDATED)
+	    {
+	        dol_syslog(get_class($this)."::validate action abandonned: already validated", LOG_WARNING);
+	        return 0;
+	    }
+
+	    /*if (! ((empty($conf->global->MAIN_USE_ADVANCED_PERMS) && ! empty($user->rights->justificativedocument->create))
+	     || (! empty($conf->global->MAIN_USE_ADVANCED_PERMS) && ! empty($user->rights->justificatevidedocument->justificateivedocument_advance->validate))))
+	     {
+	     $this->error='NotEnoughPermissions';
+	     dol_syslog(get_class($this)."::valid ".$this->error, LOG_ERR);
+	     return -1;
+	     }*/
+
+	    $now = dol_now();
+
+	    $this->db->begin();
+
+	    // Define new ref
+	    if (!$error && (preg_match('/^[\(]?PROV/i', $this->ref) || empty($this->ref))) // empty should not happened, but when it occurs, the test save life
+	    {
+	        $num = $this->getNextNumRef();
+	    }
+	    else
+	    {
+	        $num = $this->ref;
+	    }
+	    $this->newref = $num;
+
+	    // Validate
+	    $sql = "UPDATE ".MAIN_DB_PREFIX.$this->table_element;
+	    $sql .= " SET ref = '".$this->db->escape($num)."',";
+	    $sql .= " status = ".self::STATUS_VALIDATED.",";
+	    $sql .= " date_validation = '".$this->db->idate($now)."',";
+	    $sql .= " fk_user_valid = ".$user->id;
+	    $sql .= " WHERE rowid = ".$this->id;
+
+	    dol_syslog(get_class($this)."::validate()", LOG_DEBUG);
+	    $resql = $this->db->query($sql);
+	    if (!$resql)
+	    {
+	        dol_print_error($this->db);
+	        $this->error = $this->db->lasterror();
+	        $error++;
+	    }
+
+	    if (!$error && !$notrigger)
+	    {
+	        // Call trigger
+	        $result = $this->call_trigger('JUSTIFICATIVEDOCUMENT_VALIDATE', $user);
+	        if ($result < 0) $error++;
+	        // End call triggers
+	    }
+
+	    if (!$error)
+	    {
+	        $this->oldref = $this->ref;
+
+	        // Rename directory if dir was a temporary ref
+	        if (preg_match('/^[\(]?PROV/i', $this->ref))
+	        {
+	            // Now we rename also files into index
+	            $sql = 'UPDATE '.MAIN_DB_PREFIX."ecm_files set filename = CONCAT('".$this->db->escape($this->newref)."', SUBSTR(filename, ".(strlen($this->ref) + 1).")), filepath = 'justificativedocuments/".$this->db->escape($this->newref)."'";
+	            $sql .= " WHERE filename LIKE '".$this->db->escape($this->ref)."%' AND filepath = 'justificativedocuments/".$this->db->escape($this->ref)."' and entity = ".$conf->entity;
+	            $resql = $this->db->query($sql);
+	            if (!$resql) { $error++; $this->error = $this->db->lasterror(); }
+
+	            // We rename directory ($this->ref = old ref, $num = new ref) in order not to lose the attachments
+	            $oldref = dol_sanitizeFileName($this->ref);
+	            $newref = dol_sanitizeFileName($num);
+
+	            $dirsource = $conf->justificativedocuments->dir_output.'/justificativedocument/'.$oldref;
+	            $dirdest = $conf->justificativedocuments->dir_output.'/justificativedocument/'.$newref;
+	            if (!$error && file_exists($dirsource))
+	            {
+	                dol_syslog(get_class($this)."::validate() rename dir ".$dirsource." into ".$dirdest);
+
+	                if (@rename($dirsource, $dirdest))
+	                {
+	                    dol_syslog("Rename ok");
+	                    // Rename docs starting with $oldref with $newref
+	                    $listoffiles = dol_dir_list($conf->justificativedocuments->dir_output.'/justificativedocument/'.$newref, 'files', 1, '^'.preg_quote($oldref, '/'));
+	                    foreach ($listoffiles as $fileentry)
+	                    {
+	                        $dirsource = $fileentry['name'];
+	                        $dirdest = preg_replace('/^'.preg_quote($oldref, '/').'/', $newref, $dirsource);
+	                        $dirsource = $fileentry['path'].'/'.$dirsource;
+	                        $dirdest = $fileentry['path'].'/'.$dirdest;
+	                        @rename($dirsource, $dirdest);
+	                    }
+	                }
+	            }
+	        }
+	    }
+
+	    // Set new ref and current status
+	    if (!$error)
+	    {
+	        $this->ref = $num;
+	        $this->status = self::STATUS_VALIDATED;
+	    }
+
+	    if (!$error)
+	    {
+	        $this->db->commit();
+	        return 1;
+	    }
+	    else
+	    {
+	        $this->db->rollback();
+	        return -1;
+	    }
+	}
+
+
+	/**
 	 *	Set draft status
 	 *
 	 *	@param	User	$user			Object user that modify
@@ -473,8 +617,35 @@ class JustificativeDocument extends CommonObject
 		 return -1;
 		 }*/
 
-		return $this->setStatusCommon($user, self::STATUS_DRAFT, $notrigger, 'BOM_UNVALIDATE');
+		return $this->setStatusCommon($user, self::STATUS_DRAFT, $notrigger, 'JUSTIFICATIVEDOCUMENT_UNVALIDATE');
 	}
+
+
+	/**
+	 *	Approve
+	 *
+	 *	@param	User	$user			Object user that modify
+	 *  @param	int		$notrigger		1=Does not execute triggers, 0=Execute triggers
+	 *	@return	int						<0 if KO, >0 if OK
+	 */
+	public function approve($user, $notrigger = 0)
+	{
+	    // Protection
+	    if ($this->status != self::STATUS_VALIDATED)
+	    {
+	        return 0;
+	    }
+
+	    /*if (! ((empty($conf->global->MAIN_USE_ADVANCED_PERMS) && ! empty($user->rights->justificativedocuments->write))
+	     || (! empty($conf->global->MAIN_USE_ADVANCED_PERMS) && ! empty($user->rights->justificativedocuments->justificativedocuments_advance->validate))))
+	     {
+	     $this->error='Permission denied';
+	     return -1;
+	     }*/
+
+	    return $this->setStatusCommon($user, self::STATUS_APPROVED, $notrigger, 'JUSTIFICATIVEDOCUMENT_APPROVE');
+	}
+
 
 	/**
 	 *	Set cancel status
@@ -498,7 +669,7 @@ class JustificativeDocument extends CommonObject
 		 return -1;
 		 }*/
 
-		return $this->setStatusCommon($user, self::STATUS_CANCELED, $notrigger, 'BOM_CLOSE');
+		return $this->setStatusCommon($user, self::STATUS_CANCELED, $notrigger, 'JUSTIFICATIVEDOCUMENT_CLOSE');
 	}
 
 	/**
@@ -523,7 +694,7 @@ class JustificativeDocument extends CommonObject
 		 return -1;
 		 }*/
 
-		return $this->setStatusCommon($user, self::STATUS_VALIDATED, $notrigger, 'BOM_REOPEN');
+		return $this->setStatusCommon($user, self::STATUS_VALIDATED, $notrigger, 'JUSTIFICATIVEDOCUMENT_REOPEN');
 	}
 
     /**
@@ -616,17 +787,20 @@ class JustificativeDocument extends CommonObject
 	    if (empty($this->labelStatus) || empty($this->labelStatusShort))
 	    {
 	        global $langs;
-	        //$langs->load("mymodule");
+	        $langs->load("trips");
 	        $this->labelStatus[self::STATUS_DRAFT] = $langs->trans('Draft');
-	        $this->labelStatus[self::STATUS_VALIDATED] = $langs->trans('Enabled');
+	        $this->labelStatus[self::STATUS_VALIDATED] = $langs->trans('ValidatedWaitingApproval');
+	        $this->labelStatus[self::STATUS_APPROVED] = $langs->trans('Approved');
 	        $this->labelStatus[self::STATUS_CANCELED] = $langs->trans('Disabled');
 	        $this->labelStatusShort[self::STATUS_DRAFT] = $langs->trans('Draft');
-	        $this->labelStatusShort[self::STATUS_VALIDATED] = $langs->trans('Enabled');
+	        $this->labelStatusShort[self::STATUS_VALIDATED] = $langs->trans('Validated');
+	        $this->labelStatusShort[self::STATUS_APPROVED] = $langs->trans('Approved');
 	        $this->labelStatusShort[self::STATUS_CANCELED] = $langs->trans('Disabled');
 	    }
 
 	    $statusType = 'status'.$status;
-	    if ($status == self::STATUS_VALIDATED) $statusType = 'status4';
+	    if ($status == self::STATUS_VALIDATED) $statusType = 'status1';
+	    if ($status == self::STATUS_APPROVED) $statusType = 'status6';
 
 	    return dolGetStatus($this->labelStatus[$status], $this->labelStatusShort[$status], '', $statusType, $mode);
 	}
@@ -749,7 +923,67 @@ class JustificativeDocument extends CommonObject
 
 		$modelpath = "core/modules/justificativedocuments/doc/";
 
-		return $this->commonGenerateDocument($modelpath, $modele, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
+		//return $this->commonGenerateDocument($modelpath, $modele, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
+		return 1;
+	}
+
+	/**
+	 *  Returns the reference to the following non used Order depending on the active numbering module
+	 *  defined into JUSTIFICATIVEDOCUMENT_ADDON
+	 *
+	 *  @return string      		Object free reference
+	 */
+	public function getNextNumRef()
+	{
+	    global $langs, $conf;
+	    $langs->load("justificativedocuments@justificativedocuments");
+
+	    if (empty($conf->global->JUSTIFICATIVEDOCUMENT_ADDON)) {
+	        $conf->global->JUSTIFICATIVEDOCUMENT_ADDON = 'mod_justificativedocument_standard';
+	    }
+
+	    if (!empty($conf->global->JUSTIFICATIVEDOCUMENT_ADDON))
+	    {
+	        $mybool = false;
+
+	        $file = $conf->global->JUSTIFICATIVEDOCUMENT_ADDON.".php";
+	        $classname = $conf->global->JUSTIFICATIVEDOCUMENT_ADDON;
+
+	        // Include file with class
+	        $dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
+	        foreach ($dirmodels as $reldir)
+	        {
+	            $dir = dol_buildpath($reldir."core/modules/justificativedocuments/");
+
+	            // Load file with numbering class (if found)
+	            $mybool |= @include_once $dir.$file;
+	        }
+
+	        if ($mybool === false)
+	        {
+	            dol_print_error('', "Failed to include file ".$file);
+	            return '';
+	        }
+
+	        $obj = new $classname();
+	        $numref = $obj->getNextValue($soc, $this);
+
+	        if ($numref != "")
+	        {
+	            return $numref;
+	        }
+	        else
+	        {
+	            $this->error = $obj->error;
+	            //dol_print_error($this->db,get_class($this)."::getNextNumRef ".$obj->error);
+	            return "";
+	        }
+	    }
+	    else
+	    {
+	        print $langs->trans("Error")." ".$langs->trans("Error_JUSTIFICATIVEDOCUMENT_ADDON_NotDefined");
+	        return "";
+	    }
 	}
 
 	/**

@@ -92,6 +92,7 @@ class JustificativeType extends CommonObject
 	    'rowid' =>array('type'=>'integer', 'label'=>'ID', 'enabled'=>1, 'visible'=>-1, 'notnull'=>1, 'position'=>10),
 	    'code' =>array('type'=>'varchar(32)', 'label'=>'Code', 'enabled'=>1, 'visible'=>-1, 'notnull'=>1, 'position'=>15),
 	    'label' =>array('type'=>'varchar(50)', 'label'=>'Label', 'enabled'=>1, 'visible'=>-1, 'position'=>20, 'showoncombobox'=>1),
+	    //'reimbursed' =>array('type'=>'varchar(64)', 'Reimbursed'=>'Label', 'enabled'=>1, 'visible'=>-1, 'position'=>20, 'showoncombobox'=>1),
 	    'active' =>array('type'=>'tinyint(4)', 'label'=>'Active', 'enabled'=>1, 'visible'=>-1, 'notnull'=>1, 'position'=>25),
 	    'module' =>array('type'=>'varchar(32)', 'label'=>'Module', 'enabled'=>1, 'visible'=>-1, 'position'=>30),
 	);
@@ -451,7 +452,7 @@ class JustificativeType extends CommonObject
 		 return -1;
 		 }*/
 
-		return $this->setStatusCommon($user, self::STATUS_DRAFT, $notrigger, 'BOM_UNVALIDATE');
+		return $this->setStatusCommon($user, self::STATUS_DRAFT, $notrigger, 'JUSTIFICATIVEDOCUMENTTYPE_UNVALIDATE');
 	}
 
 	/**
@@ -476,7 +477,7 @@ class JustificativeType extends CommonObject
 		 return -1;
 		 }*/
 
-		return $this->setStatusCommon($user, self::STATUS_CANCELED, $notrigger, 'BOM_CLOSE');
+		return $this->setStatusCommon($user, self::STATUS_CANCELED, $notrigger, 'JUSTIFICATIVEDOCUMENTTYPE_CANCEL');
 	}
 
 	/**
@@ -501,7 +502,7 @@ class JustificativeType extends CommonObject
 		 return -1;
 		 }*/
 
-		return $this->setStatusCommon($user, self::STATUS_VALIDATED, $notrigger, 'BOM_REOPEN');
+		return $this->setStatusCommon($user, self::STATUS_VALIDATED, $notrigger, 'JUSTIFICATIVEDOCUMENTTYPE_REOPEN');
 	}
 
     /**
@@ -518,13 +519,13 @@ class JustificativeType extends CommonObject
     {
         global $conf, $langs, $hookmanager;
 
-        if (! empty($conf->dol_no_mouse_hover)) $notooltip=1;   // Force disable tooltips
+        /*if (! empty($conf->dol_no_mouse_hover)) $notooltip=1;   // Force disable tooltips
 
         $result = '';
 
         $label = '<u>' . $langs->trans("JustificativeType") . '</u>';
-        $label.= '<br>';
-        $label.= '<b>' . $langs->trans('Ref') . ':</b> ' . $this->ref;
+        $label.= '<br><b>' . $langs->trans('Ref') . ':</b> ' . $this->ref;
+        $label.= '<br><b>' . $langs->trans('Label') . ':</b> ' . $this->label;
 
         $url = dol_buildpath('/justificativedocuments/justificativetype_card.php', 1).'?id='.$this->id;
 
@@ -555,7 +556,7 @@ class JustificativeType extends CommonObject
 
 		$result .= $linkstart;
 		if ($withpicto) $result.=img_object(($notooltip?'':$label), ($this->picto?$this->picto:'generic'), ($notooltip?(($withpicto != 2) ? 'class="paddingright"' : ''):'class="'.(($withpicto != 2) ? 'paddingright ' : '').'classfortooltip"'), 0, 0, $notooltip?0:1);
-		if ($withpicto != 2) $result.= $this->ref;
+		if ($withpicto != 2) $result.= $this->label;
 		$result .= $linkend;
 		//if ($withpicto != 2) $result.=(($addlabel && $this->label) ? $sep . dol_trunc($this->label, ($addlabel > 1 ? $addlabel : 0)) : '');
 
@@ -565,6 +566,9 @@ class JustificativeType extends CommonObject
 		$reshook=$hookmanager->executeHooks('getNomUrl', $parameters, $this, $action);    // Note that $action and $object may have been modified by some hooks
 		if ($reshook > 0) $result = $hookmanager->resPrint;
 		else $result .= $hookmanager->resPrint;
+        */
+
+        $result = $this->label;
 
 		return $result;
     }
