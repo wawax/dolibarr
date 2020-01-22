@@ -37,6 +37,7 @@ print_fiche_titre($langs->trans("ECommerceSetup"),$linkback,'setup');
 	<script type="text/javascript" src="<?php print dol_buildpath('/ecommerceng/js/form.js',1); ?>"></script>
 	<br>
 	<form id="site_form_select" name="site_form_select" action="<?php $_SERVER['PHP_SELF'] ?>" method="post">
+		<?php echo $langs->trans("SelectYourSite").' : '; ?>
 		<select class="flat" id="site_form_select_site" name="site_form_select_site" onchange="eCommerceSubmitForm('site_form_select')">
 			<option value="0"><?php print $langs->trans('ECommerceAddNewSite') ?></option>
 <?php
@@ -54,7 +55,9 @@ if (count($sites))
 	</form>
 	<br>
 
-	<?php print_titre($langs->trans("MainSyncSetup")); ?>
+	<?php
+	print '<div class="titre">'.$langs->trans("MainSyncSetup").'</div>';
+	?>
 
 	<form name="site_form_detail" id="site_form_detail" action="<?php $_SERVER['PHP_SELF'] ?>" method="post">
 			<input type="hidden" name="token" value="<?php print $_SESSION['newtoken'] ?>">
@@ -68,17 +71,15 @@ if (count($sites))
 					<td><?php print $langs->trans('Value') ?></td>
 					<td><?php print $langs->trans('Description') ?></td>
 				</tr>
-<?php
-$var=!$var;
-?>
-				<tr <?php print $bc[$var] ?>>
+
+				<tr class="oddeven">
 					<td><span class="fieldrequired"><?php print $langs->trans('ECommerceSiteType') ?></span></td>
 					<td>
 						<select class="flat" name="ecommerce_type">
 							<option value="0">&nbsp;</option>
 							<?php
-								if (count($siteTypes))
-									foreach ($siteTypes as $key=>$value)
+								if (count($siteTypesLabel))
+								    foreach ($siteTypesLabel as $key=>$value)
 									{
 										print '
 											<option';
@@ -86,25 +87,56 @@ $var=!$var;
 											print ' selected="selected"';
 										print ' value="'.$key.'">'.$langs->trans($value).'</option>';
 									}
-								?>
+?>
 						</select>
+							<?php
+							// Check if SOAP is on for platform that need SOAP
+							if ($ecommerceType && in_array($ecommerceType, array(eCommerceSite::TYPE_MAGENTO, eCommerceSite::TYPE_WOOCOMMERCE)) && ! extension_loaded('soap'))
+                            {
+                                print info_admin($langs->trans("ErrorModuleSoapRequired"), 0, 0, 'error');
+                            }
+    						?>
 					</td>
 					<td><?php print $langs->trans('ECommerceSiteTypeDescription') ?></td>
 				</tr>
-<?php
-$var=!$var;
-?>
-				<tr <?php print $bc[$var] ?>>
+
+				<tr class="oddeven">
 					<td><span class="fieldrequired"><?php print $langs->trans('ECommerceSiteName') ?></span></td>
 					<td>
 						<input type="text" class="flat" name="ecommerce_name" value="<?php print $ecommerceName ?>" size="30">
 					</td>
 					<td><?php print $langs->trans('ECommerceSiteNameDescription') ?></td>
 				</tr>
-<?php
-$var=!$var;
-?>
-				<tr <?php print $bc[$var] ?>>
+
+				<tr class="oddeven">
+					<td><span class="fieldrequired"><?php print $langs->trans('ECommerceSiteAddress') ?></span></td>
+					<td>
+						<input type="text" class="flat" name="ecommerce_webservice_address" value="<?php print $ecommerceWebserviceAddress ?>" size="60">
+						<?php
+						if ($ecommerceWebserviceAddress)
+						    print '<br><a href="'.$ecommerceWebserviceAddress.'" target="_blank">'.$langs->trans("ECommerceClickUrlToTestUrl").'</a>';
+						?>
+					</td>
+					<td><?php print $langs->trans('ECommerceSiteAddressDescription') ?></td>
+				</tr>
+
+				<tr class="oddeven">
+					<td class="fieldrequired"><?php print $langs->trans('ECommerceUserName') ?></td>
+					<td>
+						<input type="text" class="flat" name="ecommerce_user_name" value="<?php print $ecommerceUserName ?>" size="20">
+					</td>
+					<td><?php print $langs->trans('ECommerceUserNameDescription') ?></td>
+				</tr>
+
+                <tr class="oddeven">
+                  <td class="fieldrequired"><?php print $langs->trans('ECommerceUserPassword') ?></td>
+                  <td>
+                    <input type="password" class="flat" name="ecommerce_user_password" value="<?php print $ecommerceUserPassword ?>" size="20">
+                  </td>
+                  <td><?php print $langs->trans('ECommerceUserPasswordDescription') ?></td>
+                </tr>
+
+				<tr class="oddeven">
 					<td><span class="fieldrequired"><?php print $langs->trans('ECommerceCatProduct') ?></span></td>
 					<td>
 						<select class="flat" name="ecommerce_fk_cat_product">
@@ -124,10 +156,8 @@ $var=!$var;
 					</td>
 					<td><?php print $langs->trans('ECommerceCatProductDescription') ?></td>
 				</tr>
-<?php
-$var=!$var;
-?>
-				<tr <?php print $bc[$var] ?>>
+
+				<tr class="oddeven">
 					<td><span class="fieldrequired"><?php print $langs->trans('ECommerceCatSociete') ?></span></td>
 					<td>
 						<select class="flat" name="ecommerce_fk_cat_societe">
@@ -147,10 +177,8 @@ $var=!$var;
 					</td>
 					<td><?php print $langs->trans('ECommerceCatSocieteDescription') ?></td>
 				</tr>
-<?php
-$var=!$var;
-?>
-				<tr <?php print $bc[$var] ?>>
+
+				<tr class="oddeven">
 					<td><span><?php print $langs->trans('ThirdPartyForNonLoggedUsers') ?></span></td>
 					<td>
 						<?php
@@ -159,10 +187,8 @@ $var=!$var;
 					</td>
 					<td><?php print $langs->trans('SynchUnkownCustomersOnThirdParty') ?></td>
 				</tr>
-<?php
-$var=!$var;
-?>
-				<tr <?php print $bc[$var] ?>>
+
+				<tr class="oddeven">
 					<td><span><?php print $langs->trans('BankAccountForPayments') ?></span></td>
 					<td>
 						<?php
@@ -171,21 +197,17 @@ $var=!$var;
 					</td>
 					<td><?php print $langs->trans('SynchPaymentsOnWichBankAccount') ?></td>
 				</tr>
-<?php
-$var=!$var;
-?>
+
 				<!-- Filter are not used at this time
-				<tr <?php print $bc[$var] ?>>
+				<tr class="oddeven">
 					<td><?php print $langs->trans('ECommerceFilterLabel') ?></td>
 					<td>
 						<input type="text" class="flat" name="ecommerce_filter_label" value="<?php print $ecommerceFilterLabel ?>" size="30">
 					</td>
 					<td><?php print $langs->trans('ECommerceFilterLabelDescription') ?></td>
 				</tr>
-<?php
-$var=!$var;
-?>
-				<tr <?php print $bc[$var] ?>>
+
+				<tr class="oddeven">
 					<td><?php print $langs->trans('ECommerceFilterValue') ?></td>
 					<td>
 						<input type="text" class="flat" name="ecommerce_filter_value" value="<?php print $ecommerceFilterValue ?>" size="30">
@@ -194,44 +216,9 @@ $var=!$var;
 				</tr>
 				-->
 <?php
-$var=!$var;
-?>
-				<tr <?php print $bc[$var] ?>>
-					<td><span class="fieldrequired"><?php print $langs->trans('ECommerceSiteAddress') ?></span></td>
-					<td>
-						<input type="text" class="flat" name="ecommerce_webservice_address" value="<?php print $ecommerceWebserviceAddress ?>" size="60">
-						<?php
-						if ($ecommerceWebserviceAddress)
-						    print '<br><a href="'.$ecommerceWebserviceAddress.'" target="_blank">'.$langs->trans("ECommerceClickUrlToTestUrl").'</a>';
-						?>
-					</td>
-					<td><?php print $langs->trans('ECommerceSiteAddressDescription') ?></td>
-				</tr>
-<?php
-$var=!$var;
-?>
-				<tr <?php print $bc[$var] ?>>
-					<td class="fieldrequired"><?php print $langs->trans('ECommerceUserName') ?></td>
-					<td>
-						<input type="text" class="flat" name="ecommerce_user_name" value="<?php print $ecommerceUserName ?>" size="20">
-					</td>
-					<td><?php print $langs->trans('ECommerceUserNameDescription') ?></td>
-				</tr>
-<?php
-$var=!$var;
-?>
-        <tr <?php print $bc[$var] ?>>
-          <td class="fieldrequired"><?php print $langs->trans('ECommerceUserPassword') ?></td>
-          <td>
-            <input type="password" class="flat" name="ecommerce_user_password" value="<?php print $ecommerceUserPassword ?>" size="20">
-          </td>
-          <td><?php print $langs->trans('ECommerceUserPasswordDescription') ?></td>
-        </tr>
-<?php
 if (!empty($conf->global->PRODUIT_MULTIPRICES)) {
-  $var = !$var;
 ?>
-  <tr <?php print $bc[$var] ?>>
+  <tr class="oddeven">
     <td class="fieldrequired"><?php print $langs->trans('ECommercePriceLevel') ?></td>
     <td>
       <select class="flat" name="ecommerce_price_level">
@@ -252,9 +239,8 @@ if (!empty($conf->global->PRODUIT_MULTIPRICES)) {
 <?php
 }
 /*
-$var=!$var;
 ?>
-				<tr <?php print $bc[$var] ?>>
+				<tr class="oddeven">
 					<td><span><?php print $langs->trans('ECommerceTimeout') ?></span></td>
 					<td>
 						<input type="text" class="flat" name="ecommerce_timeout" value="<?php print $ecommerceTimeout ?>" size="10">
@@ -264,9 +250,8 @@ $var=!$var;
 <?php
 */
 /* TODO A activer et tester "special prices"
-$var=!$var;
 ?>
-				<tr <?php print $bc[$var] ?>>
+				<tr class="oddeven">
 					<td><?php print $langs->trans('ECommerceMagentoUseSpecialPrice') ?></td>
 					<td>
 						<input type="checkbox" class="flat" name="ecommerce_magento_use_special_price" <?php print ($ecommerceMagentoUseSpecialPrice ? 'checked' : '') ?> />
@@ -275,9 +260,8 @@ $var=!$var;
 				</tr>
 <?php
 */
-$var=!$var;
 ?>
-				<tr <?php print $bc[$var] ?>>
+				<tr class="oddeven">
 					<td><?php print $langs->trans('ECommerceMagentoPriceType') ?></td>
 					<td>
 						<select class="flat" name="ecommerce_magento_price_type">
@@ -287,18 +271,16 @@ $var=!$var;
 					</td>
 					<td><?php print $langs->trans('ECommerceMagentoPriceTypeDescription') ?></td>
 				</tr>
+
 			</table>
 
 
 			<br>
 
-
 <?php
 if ($conf->stock->enabled)
 {
-    print_titre($langs->trans("StockSyncSetup"));
-
-    $var=!$var;
+    print '<div class="titre">'.$langs->trans("StockSyncSetup").'</div>';
 ?>
 			<table class="noborder" width="100%">
 
@@ -308,7 +290,7 @@ if ($conf->stock->enabled)
 					<td><?php print $langs->trans('Description') ?></td>
 				</tr>
 
-				<tr <?php print $bc[$var] ?>>
+				<tr class="oddeven">
 					<td><span><?php print $langs->trans('ECommerceStockSyncDirection') ?></span></td>
 					<td>
 						<?php
@@ -318,11 +300,8 @@ if ($conf->stock->enabled)
 					</td>
 					<td><?php print $langs->trans('ECommerceStockSyncDirectionDescription') ?></td>
 				</tr>
-<?php
-    $var=!$var;
-?>
 
-				<tr <?php print $bc[$var] ?>>
+				<tr class="oddeven">
 					<td><span><?php print $langs->trans('ECommerceStockProduct') ?></span></td>
 					<td>
 							<?php
@@ -345,14 +324,14 @@ if ($conf->stock->enabled)
 if ($siteDb->id)
 {
 ?>
-				<input type="submit" name="save_site" class="butAction" value="<?php print $langs->trans('Save') ?>">
-				<a class="butActionDelete" href='javascript:eCommerceConfirmDelete("site_form_detail", "<?php print $langs->trans('ECommerceConfirmDelete') ?>")'><?php print $langs->trans('Delete') ?></a>
+				<input type="submit" name="save_site" class="button" value="<?php print $langs->trans('Save') ?>">
+				<a class="button" href='javascript:eCommerceConfirmDelete("site_form_detail", "<?php print $langs->trans('ECommerceConfirmDelete') ?>")'><?php print $langs->trans('Delete') ?></a>
 <?php
 }
 else
 {
 ?>
-				<input type="submit" name="save_site" class="butAction" value="<?php print $langs->trans('Add') ?>">
+				<input type="submit" name="save_site" class="button" value="<?php print $langs->trans('Add') ?>">
 <?php
 }
 ?>

@@ -89,7 +89,7 @@ class modForceProject extends DolibarrModules
 		$this->depends = array();		// List of modules id that must be enabled if this module is enabled
 		$this->requiredby = array();	// List of modules id to disable if this one is disabled
 		$this->phpmin = array(4,3);					// Minimum version of PHP required by module
-		$this->need_dolibarr_version = array(3,0);	// Minimum version of Dolibarr required by module
+		$this->need_dolibarr_version = array(10,0);	// Minimum version of Dolibarr required by module
 		$this->langfiles = array('forceproject@forceproject');
 
 		// Constants
@@ -163,13 +163,13 @@ class modForceProject extends DolibarrModules
 	 *					It also creates data directories.
 	 *      \return     int             1 if OK, 0 if KO
 	 */
-	function init()
+	function init($options = '')
 	{
 		$sql = array();
 
 		$result=$this->load_tables();
 
-		return $this->_init($sql);
+		return $this->_init($sql, $options);
 	}
 
 	/**
@@ -178,11 +178,11 @@ class modForceProject extends DolibarrModules
 	 *					Data directories are not deleted.
 	 *      \return     int             1 if OK, 0 if KO
 	 */
-	function remove()
+	function remove($options = '')
 	{
 		$sql = array();
 
-		return $this->_remove($sql);
+		return $this->_remove($sql, $options);
 	}
 
 

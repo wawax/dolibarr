@@ -49,10 +49,11 @@ class eCommerceRemoteAccessWoocommerce
 
     /**
      *      Constructor
+     *
      *      @param      DoliDB      $db         Database handler
      *      @param      string      $site       eCommerceSite
      */
-    function eCommerceRemoteAccessWoocommerce($db, $site)
+    function __construct($db, $site)
     {
         $this->db = $db;
         $this->site = $site;
@@ -1323,13 +1324,14 @@ class eCommerceRemoteAccessWoocommerce
     /**
      * Return the magento's category tree
      *
-     * @return  array|boolean       Array with categories or false if error
+     * @return  array|boolean       Array with categories or false if error:
+     *                              array(array('level'=>, 'updated_at'=>, 'category_id'=> ), ...)
      */
     public function getRemoteCategoryTree()
     {
         dol_syslog("eCommerceRemoteAccessWoocommerce getRemoteCategoryTree session=".$this->session);
+        $result = array();
  /*       try {
-            //$result = $this->client->call($this->session, 'auguria_dolibarrapi_catalog_category.tree');
             $result = $this->client->call($this->session, 'catalog_category.tree');
             return $result;
             //dol_syslog($this->client->__getLastRequest());
@@ -1338,9 +1340,9 @@ class eCommerceRemoteAccessWoocommerce
             dol_syslog(__METHOD__.': '.$fault->getMessage().'-'.$fault->getCode().'-'.$fault->getTraceAsString(), LOG_WARNING);
             return false;
         }*/
-        return array();
         //var_dump($result);
         dol_syslog("eCommerceRemoteAccessWoocommerce getRemoteCategoryTree end. Nb of record of result = ".count($result));
+        return $result;
     }
 
     /**
@@ -1352,7 +1354,6 @@ class eCommerceRemoteAccessWoocommerce
     {
         dol_syslog("eCommerceRemoteAccessWoocommerce getRemoteCategoryAtt session=".$this->session);
         try {
-            //$result = $this->client->call($this->session, 'auguria_dolibarrapi_catalog_category.tree');
             $result = $this->client->call($this->session, 'catalog_category_attribute.list');
         } catch (SoapFault $fault) {
             $this->errors[]=$this->site->name.': '.$fault->getMessage().'-'.$fault->getCode();
@@ -1389,7 +1390,6 @@ class eCommerceRemoteAccessWoocommerce
         $result = array();
         dol_syslog("eCommerceRemoteAccessWoocommerce getCategoryData session=".$this->session);
 /*        try {
-            //$result = $this->client->call($this->session, 'auguria_dolibarrapi_catalog_category.tree');
             $result = $this->client->call($this->session, 'catalog_category.info', array('categoryId'=>$category_id));
             //dol_syslog($this->client->__getLastRequest());
         } catch (SoapFault $fault) {

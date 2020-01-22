@@ -49,7 +49,13 @@ class eCommerceSite // extends CommonObject
 	var $magento_price_type;
 
 	//The site type name is used to define class name in eCommerceRemoteAccess class
-    private $siteTypes = array(1=>'magento', 2=>'woocommerce');
+    private $siteTypes = array(1=>'Magento', 2=>'WooCommerce', 3=>'Prestashop');
+    private $siteTypesLabel = array(1=>'Magento 1.9', 2=>'WooCommerce', 3=>'Prestashop 1.6');
+
+    const TYPE_MAGENTO = 1;
+    const TYPE_WOOCOMMERCE = 2;
+    const TYPE_PRESTASHOP = 3;
+
 
     /**
      * Constructor
@@ -552,6 +558,15 @@ class eCommerceSite // extends CommonObject
 		return $this->siteTypes;
 	}
 
+	/**
+	 * Return list of available site types
+	 *
+	 * @return string[]
+	 */
+	public function getSiteTypesLabel()
+	{
+	    return $this->siteTypesLabel;
+	}
 
 	/**
 	 * Return URL of visitors shop
