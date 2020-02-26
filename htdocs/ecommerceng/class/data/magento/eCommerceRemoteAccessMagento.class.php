@@ -180,7 +180,7 @@ class eCommerceRemoteAccessMagento
             $result = $this->client->call($this->session, 'catalog_product.list', $filter);
 
             $results = array();
-            $productsTypesOk = array('simple', 'virtual', 'downloadable');  // We exclude configurable. TODO Get them ?
+            $productsTypesOk = array('giftvoucher', 'simple', 'virtual', 'downloadable');  // We exclude configurable. TODO Get them ?
             foreach ($result as $product)
             {
                 if (in_array($product['type'], $productsTypesOk))
