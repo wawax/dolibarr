@@ -786,16 +786,18 @@ class eCommerceRemoteAccessMagento
                             }
                             $configurableItems[$item['item_id']] = $conf_item;
 						} else {
-                            $tmpitem['fz_rollingpart_serial'] = '';
-                            $tmpitem['fz_shoesize'] = '';
-                            if (isset($conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)
-                            && $conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)
-							{
-								$this->getCustomInfos($item, $tmpitem);
-							}
                             // If item has a parent item id defined in $configurableItems, it's a child simple item so we get it's price and tax values instead of 0
 							if (! array_key_exists($item['parent_item_id'], $configurableItems)) {
-								$items[] = array(
+
+                                $tmpitem['fz_rollingpart_serial'] = '';
+                                $tmpitem['fz_shoesize'] = '';
+                                if (isset($conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)
+                                && $conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)
+                                {
+                                    $this->getCustomInfos($item, $tmpitem);
+                                }
+    
+                                $items[] = array(
 								'item_id' => $item['item_id'],
 								'id_remote_product' => $item['product_id'],
 								'description' => $item['name'],
