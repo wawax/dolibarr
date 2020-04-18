@@ -763,7 +763,7 @@ class eCommerceRemoteAccessMagento
 					{
 						// If item is configurable, localMemCache it, to use its price and tax rate instead of the one of its child
 						if ($item['product_type'] == 'configurable') {
-                     $conf_item = array(
+                            $conf_item = array(
 							'item_id' => $item['item_id'],
 							'id_remote_product' => $item['product_id'],
 							'description' => $item['name'],
@@ -776,15 +776,15 @@ class eCommerceRemoteAccessMagento
 							'remote_simple_sku' => $item['simple_sku'],
 							'remote_long_sku' => $item['sku']
 							);
-                     if (isset($conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)
-                        && $conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)
+                            if (isset($conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)
+                            && $conf->global->ECOMMERCENG_ENABLE_FLANEURZ_INFOS)
 							{
 								$this->getCustomInfos($item, $conf_item);
 							} else {
-                        $conf_item['fz_rollingpart_serial'] = '';
-                        $conf_item['fz_shoesize'] = '';
-                     }
-                     $configurableItems[$item['item_id']] = $conf_item;
+                                $conf_item['fz_rollingpart_serial'] = '';
+                                $conf_item['fz_shoesize'] = '';
+                            }
+                            $configurableItems[$item['item_id']] = $conf_item;
 						} else {
 							// If item has a parent item id defined in $configurableItems, it's a child simple item so we get it's price and tax values instead of 0
 							if (! array_key_exists($item['parent_item_id'], $configurableItems)) {
@@ -795,15 +795,17 @@ class eCommerceRemoteAccessMagento
 								'product_type' => $item['product_type'],
 								'price' => $item['price'],
 								'remise' => $item['discount_amount'],
-                                                                'remise_percent' => round(($item['discount_amount']*100)/$item['price']),
+                                'remise_percent' => round(($item['discount_amount']*100)/$item['price']),
 								'qty' => $item['qty_ordered'],
 								'tva_tx' => $item['tax_percent'],
 								'remote_simple_sku' => $item['simple_sku'],
 								'remote_long_sku' => $item['sku'],
-                        'fz_rollingpart_serial' => $item['fz_rollingpart_serial'],
-                        'fz_shoesize' => $item['fz_shoesize']
+                                //'fz_rollingpart_serial' => $item['fz_rollingpart_serial'],
+                                //'fz_shoesize' => $item['fz_shoesize']
 								);
-							} else {
+								$this->getCustomInfos($item, $item);
+
+                            } else {
 								$items[] = array(
 								'item_id' => $item['item_id'],
 								'id_remote_product' => $item['product_id'],
@@ -816,8 +818,8 @@ class eCommerceRemoteAccessMagento
 								'tva_tx' => $configurableItems[$item['parent_item_id']]['tva_tx'],
 								'remote_simple_sku' => $configurableItems[$item['parent_item_id']]['remote_simple_sku'],
 								'remote_long_sku' => $configurableItems[$item['parent_item_id']]['remote_long_sku'],
-                        'fz_rollingpart_serial' => $configurableItems[$item['parent_item_id']]['fz_rollingpart_serial'],
-                        'fz_shoesize' => $configurableItems[$item['parent_item_id']]['fz_shoesize']
+                                'fz_rollingpart_serial' => $configurableItems[$item['parent_item_id']]['fz_rollingpart_serial'],
+                                'fz_shoesize' => $configurableItems[$item['parent_item_id']]['fz_shoesize']
 								);
 							}
 						}
