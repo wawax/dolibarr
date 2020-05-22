@@ -2947,6 +2947,22 @@ class eCommerceSynchro
 
                                     	// Set payment method id
                                     	$paymenttypeid = 0;
+                                      if (in_array($factureArray['remote_order']["payment"]['method'], array('banktransfer')))
+                                    	{
+                                    		if (empty($paymenttypeidforbanktranfer)) 		// Id in llx_c_paiement (for VIR, CHQ, CB, ...)
+	                                    	{
+	                                    		$paymenttypeidforbanktranfer = dol_getIdFromCode($this->db, 'VIR', 'c_paiement');
+	                                        }
+	                                        $paymenttypeid = $paymenttypeidforbanktranfer;
+                                    	}
+                                      if (in_array($factureArray['remote_order']["payment"]['method'], array('cash')))
+                                    	{
+                                    		if (empty($paymenttypeidforcash)) 		// Id in llx_c_paiement (for VIR, CHQ, CB, ...)
+	                                    	{
+	                                    		$paymenttypeidforcash = dol_getIdFromCode($this->db, 'LIQ', 'c_paiement');
+	                                        }
+	                                        $paymenttypeid = $paymenttypeidforcash;
+                                    	}
                                     	if (in_array($factureArray['remote_order']["payment"]['method'], array('checkmo')))
                                     	{
                                     		if (empty($paymenttypeidforchq)) 		// Id in llx_c_paiement (for VIR, CHQ, CB, ...)
