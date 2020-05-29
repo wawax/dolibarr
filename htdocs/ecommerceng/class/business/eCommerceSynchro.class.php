@@ -2951,6 +2951,14 @@ class eCommerceSynchro
 
                                     	// Set payment method id
                                     	$paymenttypeid = 0;
+                                    	if (in_array($factureArray['remote_order']["payment"]['method'], array('sumup')))
+                                    	{
+                                    		if (empty($paymenttypeidforsumpup)) 		// Id in llx_c_paiement (for VIR, CHQ, CB, ...)
+	                                    	{
+	                                    		$paymenttypeidforsumpup = dol_getIdFromCode($this->db, 'SUM', 'c_paiement');
+	                                        }
+	                                        $paymenttypeid = $paymenttypeidforsumpup;
+                                    	}
                                     	if (in_array($factureArray['remote_order']["payment"]['method'], array('checkmo')))
                                     	{
                                     		if (empty($paymenttypeidforchq)) 		// Id in llx_c_paiement (for VIR, CHQ, CB, ...)
