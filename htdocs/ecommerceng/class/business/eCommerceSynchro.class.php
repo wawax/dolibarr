@@ -2542,6 +2542,9 @@ class eCommerceSynchro
             {
             	$paymenttypeidforcard = 0;
             	$paymenttypeidforchq = 0;
+            	$paymenttypeidforsumpup = 0;
+            	$paymenttypeidforcash = 0;
+            	$paymenttypeidforpaypal = 0;
 
                 // Local filter to exclude bundles and other complex types
 //                $productsTypesOk = array('simple', 'virtual', 'downloadable');
@@ -2951,6 +2954,22 @@ class eCommerceSynchro
 
                                     	// Set payment method id
                                     	$paymenttypeid = 0;
+                                    	if (in_array($factureArray['remote_order']["payment"]['method'], array('cash')))
+                                    	{
+                                    		if (empty($paymenttypeidforcash)) 		// Id in llx_c_paiement (for VIR, CHQ, CB, ...)
+	                                    	{
+	                                    		$paymenttypeidforcash = dol_getIdFromCode($this->db, 'LIQ', 'c_paiement');
+	                                        }
+	                                        $paymenttypeid = $paymenttypeidforcash;
+                                    	}
+                                    	if (in_array($factureArray['remote_order']["payment"]['method'], array('paypalme')))
+                                    	{
+                                    		if (empty($paymenttypeidforpaypal)) 		// Id in llx_c_paiement (for VIR, CHQ, CB, ...)
+	                                    	{
+	                                    		$paymenttypeidforpaypal = dol_getIdFromCode($this->db, 'PAY', 'c_paiement');
+	                                        }
+	                                        $paymenttypeid = $paymenttypeidforpaypal;
+                                    	}
                                     	if (in_array($factureArray['remote_order']["payment"]['method'], array('sumup')))
                                     	{
                                     		if (empty($paymenttypeidforsumpup)) 		// Id in llx_c_paiement (for VIR, CHQ, CB, ...)
