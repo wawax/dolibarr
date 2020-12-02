@@ -2543,6 +2543,7 @@ class eCommerceSynchro
             	$paymenttypeidforcard = 0;
             	$paymenttypeidforchq = 0;
             	$paymenttypeidforsumpup = 0;
+            	$paymenttypeidfortpe = 0;
             	$paymenttypeidforcash = 0;
             	$paymenttypeidforpaypal = 0;
 
@@ -2977,6 +2978,14 @@ class eCommerceSynchro
 	                                    		$paymenttypeidforsumpup = dol_getIdFromCode($this->db, 'SUM', 'c_paiement');
 	                                        }
 	                                        $paymenttypeid = $paymenttypeidforsumpup;
+                                    	}
+                                    	if (in_array($factureArray['remote_order']["payment"]['method'], array('tpe')))
+                                    	{
+                                    		if (empty($paymenttypeidfortpe)) 		// Id in llx_c_paiement (for VIR, CHQ, CB, ...)
+	                                    	{
+	                                    		$paymenttypeidfortpe = dol_getIdFromCode($this->db, 'TPE', 'c_paiement');
+	                                        }
+	                                        $paymenttypeid = $paymenttypeidfortpe;
                                     	}
                                     	if (in_array($factureArray['remote_order']["payment"]['method'], array('checkmo')))
                                     	{
